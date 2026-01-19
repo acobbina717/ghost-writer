@@ -1,0 +1,79 @@
+/**
+ * Ghost-Writer Design System - CSS Variables (v1.5)
+ * Mirrors src/theme/colors.ts
+ */
+
+:root {
+  --font-sans: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 100ms;
+  --duration-default: 200ms;
+  --duration-slow: 300ms;
+
+  --color-red-primary: #E21C1C;
+  --color-red-hover: #C11414;
+}
+
+/* Light Mode */
+[data-mantine-color-scheme='light'] {
+  --bg-base: #F7F7F8;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F0F1F3;
+  --bg-inset: #E9EBEF;
+
+  --text-primary: #0D0E11;
+  --text-secondary: #4B4F58;
+  --text-tertiary: #6A7080;
+  --text-muted: #6A7080;
+
+  --border-default: #E5E7EA;
+  --border-subtle: #EFF1F3;
+  --border-strong: #D4D7DD;
+
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+
+  --page-background: var(--bg-base);
+}
+
+/* Dark Mode */
+[data-mantine-color-scheme='dark'] {
+  --bg-base: #111216;
+  --bg-surface: #16181C;
+  --bg-elevated: #1E2026;
+  --bg-inset: #1B1D23;
+
+  --text-primary: #F4F5F7;
+  --text-secondary: #B9BDC7;
+  --text-tertiary: #8D93A0;
+  --text-muted: #8D93A0;
+
+  --border-default: #2A2D34;
+  --border-subtle: #1D1F25;
+  --border-strong: #363B45;
+
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
+
+  --page-background: var(--bg-base);
+}
+
+/* Utilities */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-muted { color: var(--text-muted); }
+.text-red { color: var(--color-red-primary); }
+
+.bg-base { background-color: var(--bg-base); }
+.bg-surface { background-color: var(--bg-surface); }
+.bg-elevated { background-color: var(--bg-elevated); }
+.bg-inset { background-color: var(--bg-inset); }
+
+.mono { font-family: var(--font-mono); }
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--color-red-primary);
+}
+

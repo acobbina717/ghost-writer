@@ -1,0 +1,50 @@
+{
+  "name": "ghost-writer",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:next dev:convex",
+    "dev:next": "next dev",
+    "dev:convex": "convex dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "migrate:neon-to-convex": "npx tsx scripts/migrateToConvex.ts"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.36.5",
+    "@mantine/core": "^8.3.10",
+    "@mantine/dates": "^8.3.12",
+    "@mantine/form": "^8.3.10",
+    "@mantine/hooks": "^8.3.10",
+    "@mantine/notifications": "^8.3.10",
+    "@mantine/tiptap": "^8.3.10",
+    "@sentry/nextjs": "^10.32.1",
+    "@tabler/icons-react": "^3.36.0",
+    "@tanstack/react-table": "^8.21.3",
+    "@tiptap/core": "^3.14.0",
+    "@tiptap/extension-link": "^3.14.0",
+    "@tiptap/extension-placeholder": "^3.14.0",
+    "@tiptap/pm": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
+    "clsx": "^2.1.1",
+    "convex": "^1.31.2",
+    "dayjs": "^1.11.19",
+    "isomorphic-dompurify": "^2.35.0",
+    "next": "16.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^16.4.5",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "npm-run-all": "^4.1.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}

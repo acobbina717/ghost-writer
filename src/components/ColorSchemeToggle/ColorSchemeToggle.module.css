@@ -1,0 +1,13 @@
+.icon {
+  /* Mantine's pattern: render both icons, use CSS to show/hide based on color scheme */
+}
+
+/* In light mode: hide sun icon (show moon to switch to dark) */
+:global([data-mantine-color-scheme="light"]) .light {
+  display: none;
+}
+
+/* In dark mode: hide moon icon (show sun to switch to light) */
+:global([data-mantine-color-scheme="dark"]) .dark {
+  display: none;
+}
