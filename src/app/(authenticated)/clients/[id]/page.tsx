@@ -2,25 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Stack, Group, Title, Text, Anchor, Button, Center, Loader } from '@mantine/core';
-import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
-import Link from 'next/link';
+import { Stack, Group, Title, Text, Button, Center, Loader } from '@mantine/core';
+import { IconPlus, IconFileAlert } from '@tabler/icons-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { ClientInfoCard } from './ClientInfoCard';
 import { ClientDisputesTable } from './ClientDisputesTable';
-import { DisputeItemModal } from './DisputeItemModal';
-import { LetterSelectionModal } from './LetterSelectionModal';
+import { DisputeGenerateModal, type PrePopulatedData } from './DisputeGenerateModal';
+import { EmptyState } from '@/components/EmptyState';
+import { PageBreadcrumbs } from '@/components/PageBreadcrumbs/PageBreadcrumbs';
 
 export default function ClientDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as Id<"clients">;
 
-  const [disputeModalOpened, setDisputeModalOpened] = useState(false);
-  const [letterModalOpened, setLetterModalOpened] = useState(false);
-  const [selectedDisputeId, setSelectedDisputeId] = useState<string | null>(null);
+  const [generateModalOpened, setGenerateModalOpened] = useState(false);
+  const [prePopulatedData, setPrePopulatedData] = useState<PrePopulatedData | null>(null);
 
   // User auth is handled by layout - no need to query/check here
   const client = useQuery(api.clients.getClient, { clientId: id });
@@ -33,9 +32,14 @@ export default function ClientDetailPage() {
     }
   }, [client, router]);
 
-  const handleGenerateLetter = (disputeId: string) => {
-    setSelectedDisputeId(disputeId);
-    setLetterModalOpened(true);
+  const handleOpenGenerateModal = (data?: PrePopulatedData) => {
+    setPrePopulatedData(data ?? null);
+    setGenerateModalOpened(true);
+  };
+
+  const handleCloseGenerateModal = () => {
+    setGenerateModalOpened(false);
+    setPrePopulatedData(null);
   };
 
   // Loading state or redirecting
@@ -53,21 +57,30 @@ export default function ClientDetailPage() {
     (today.getTime() - client.createdAt) / (1000 * 60 * 60 * 24)
   );
 
+  // Compute dispute stats for intelligence layer (I2)
+  const disputeStats = (() => {
+    const total = disputeItems.length;
+    const removed = disputeItems.filter(d => d.status === 'removed').length;
+    const pending = disputeItems.filter(d => d.status === 'pending').length;
+    const verified = disputeItems.filter(d => d.status === 'verified').length;
+    const resolved = removed + verified;
+    const removalRate = resolved > 0 ? Math.round((removed / resolved) * 100) : null;
+    return { total, removed, pending, verified, removalRate };
+  })();
+
   return (
     <Stack gap="xl">
-      {/* Back Link */}
-      <Anchor component={Link} href="/dashboard" size="sm" c="dimmed">
-        <Group gap="xs">
-          <IconArrowLeft size={16} />
-          Back to Dashboard
-        </Group>
-      </Anchor>
+      <PageBreadcrumbs items={[
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: `${client.firstName} ${client.lastName}` },
+      ]} />
 
       {/* Client Info Card */}
       <ClientInfoCard
         client={client}
         daysActive={daysActive}
         totalDisputes={disputeItems.length}
+        disputeStats={disputeStats}
       />
 
       {/* Dispute Items Section */}
@@ -77,38 +90,37 @@ export default function ClientDetailPage() {
           <Button
             leftSection={<IconPlus size={16} />}
             variant="light"
-            onClick={() => setDisputeModalOpened(true)}
+            onClick={() => handleOpenGenerateModal()}
           >
             Add Dispute
           </Button>
         </Group>
 
         {disputeItems.length === 0 ? (
-          <Text c="dimmed" ta="center" py="xl">
-            No dispute items yet. Add your first dispute to start tracking.
-          </Text>
+          <EmptyState
+            icon={<IconFileAlert size={48} />}
+            title="No Dispute Items"
+            description="Ghost is ready to write. Add a dispute to start generating letters."
+            action={{
+              label: 'Add Dispute',
+              onClick: () => handleOpenGenerateModal(),
+              icon: <IconPlus size={16} />,
+            }}
+          />
         ) : (
           <ClientDisputesTable
             items={disputeItems}
-            onGenerateLetter={handleGenerateLetter}
+            onOpenGenerateModal={handleOpenGenerateModal}
           />
         )}
       </Stack>
 
-      {/* Modals */}
-      <DisputeItemModal
-        opened={disputeModalOpened}
-        onClose={() => setDisputeModalOpened(false)}
+      {/* Dispute Generate Modal */}
+      <DisputeGenerateModal
+        opened={generateModalOpened}
+        onClose={handleCloseGenerateModal}
         clientId={id}
-      />
-      <LetterSelectionModal
-        opened={letterModalOpened}
-        onClose={() => {
-          setLetterModalOpened(false);
-          setSelectedDisputeId(null);
-        }}
-        clientId={id}
-        disputeId={selectedDisputeId}
+        prePopulatedData={prePopulatedData}
       />
     </Stack>
   );

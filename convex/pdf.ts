@@ -1,32 +1,66 @@
+"use node";
+
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { FilterXSS } from "xss";
+import { LETTER_CSS } from "./constants";
 
 const MAX_HTML_BYTES = 500_000; // ~500KB ceiling for payloads
 
-const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'a'];
-const ALLOWED_ATTR = ['href', 'target', 'rel'];
+const ALLOWED_TAGS = ['p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span', 'blockquote', 'hr'];
 
-/**
- * Simple HTML sanitizer for Convex action
- * (DOMPurify requires DOM, so we use a basic regex approach here)
- */
+const ALLOWED_ATTR_MAP: Record<string, string[]> = {
+  a: ['href', 'target', 'rel'],
+  td: ['colspan', 'rowspan', 'style'],
+  th: ['colspan', 'rowspan', 'style'],
+  span: ['style'],
+  p: ['style'],
+  h1: ['style'],
+  h2: ['style'],
+  h3: ['style'],
+  h4: ['style'],
+  h5: ['style'],
+  h6: ['style'],
+};
+
+const SAFE_CSS_PROPERTIES = new Set([
+  'text-align',
+  'font-family',
+  'font-size',
+  'line-height',
+]);
+
+function sanitizeStyle(value: string): string {
+  return value
+    .split(';')
+    .map((decl) => decl.trim())
+    .filter((decl) => {
+      const prop = decl.split(':')[0]?.trim().toLowerCase();
+      return prop && SAFE_CSS_PROPERTIES.has(prop);
+    })
+    .join('; ');
+}
+
+const xssFilter = new FilterXSS({
+  whiteList: Object.fromEntries(
+    ALLOWED_TAGS.map((tag) => [tag, ALLOWED_ATTR_MAP[tag] ?? []])
+  ),
+  stripIgnoreTag: true,
+  onTagAttr(tag, name, value) {
+    if (name !== 'style') return undefined;
+    const cleaned = sanitizeStyle(value);
+    if (!cleaned) return '';
+    return `${name}="${cleaned}"`;
+  },
+});
+
 function sanitizeHtml(html: string): string {
-  // Remove script tags
-  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  
-  // Remove event handlers
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-  
-  // Remove javascript: URLs
-  sanitized = sanitized.replace(/javascript:/gi, '');
-  
-  return sanitized;
+  return xssFilter.process(html);
 }
 
 /**
  * Generate PDF from HTML using Browserless
- * 
+ *
  * Note: This returns the PDF as base64 since Convex actions can't stream binary.
  * The client should decode and download the base64 string.
  */
@@ -56,21 +90,20 @@ export const generatePdf = action({
       throw new Error("PDF service not configured");
     }
 
-    // Build styled HTML
+    const browserlessUrl = process.env.BROWSERLESS_API_URL || 'https://chrome.browserless.io/pdf';
+
+    // Build styled HTML — Arial is a system font, no @import needed
     const styledHtml = `
       <html>
         <head>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Arial&display=swap');
-            body { font-family: Arial, sans-serif; font-size: 12pt; }
-          </style>
+          <style>${LETTER_CSS}</style>
         </head>
         <body>${sanitizedHtml}</body>
       </html>
     `;
 
     // Call Browserless API
-    const response = await fetch('https://chrome.browserless.io/pdf', {
+    const response = await fetch(browserlessUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,4 +133,3 @@ export const generatePdf = action({
     };
   },
 });
-

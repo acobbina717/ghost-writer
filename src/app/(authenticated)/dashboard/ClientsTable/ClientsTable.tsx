@@ -6,10 +6,14 @@ import {
   useReactTable,
   getCoreRowModel,
   getExpandedRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
   flexRender,
   type ExpandedState,
+  type SortingState,
 } from '@tanstack/react-table';
-import { Table, Text, Paper } from '@mantine/core';
+import { Table, Text, Paper, ScrollArea, TextInput, Group, ActionIcon, Select } from '@mantine/core';
+import { IconSearch, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useDisclosure } from '@mantine/hooks';
 import { useConvex } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
@@ -20,6 +24,7 @@ import { DeleteClientModal } from '../DeleteClientModal';
 import { createColumns } from './columns';
 import type { ClientsTableProps, DisputeItemsCache } from './types';
 
+const PAGE_SIZE_OPTIONS = ['10', '25', '50'];
 
 export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
   const convex = useConvex();
@@ -27,12 +32,23 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
   const [disputeItemsCache, setDisputeItemsCache] = useState<DisputeItemsCache>({});
   const [clientToDelete, setClientToDelete] = useState<ClientWithDisputes | null>(null);
   const [deleteModalOpened, { open: openDeleteModal, close: closeDeleteModal }] = useDisclosure(false);
+  const [search, setSearch] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const filteredData = useMemo(() => {
-    return filter === 'pending'
+    let data = filter === 'pending'
       ? clients.filter((c) => c.pendingDisputes > 0)
       : clients;
-  }, [clients, filter]);
+
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      data = data.filter((c) =>
+        `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
+      );
+    }
+
+    return data;
+  }, [clients, filter, search]);
 
   const handleDeleteClick = useCallback((client: ClientWithDisputes) => {
     setClientToDelete(client);
@@ -84,28 +100,52 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
   const table = useReactTable({
     data: filteredData,
     columns,
-    state: { expanded },
+    state: { expanded, sorting },
     onExpandedChange: handleExpandedChange,
+    onSortingChange: setSorting,
     getRowCanExpand: () => true,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: { pagination: { pageSize: 10 } },
   });
 
   return (
     <>
       <Paper withBorder radius="sm">
-        <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover>
+        <TextInput
+          placeholder="Search clients..."
+          leftSection={<IconSearch size={16} />}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
+          m="md"
+          mb={0}
+        />
+        <ScrollArea type="auto">
+        <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover style={{ minWidth: 600 }}>
           <Table.Thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <Table.Tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <Table.Th
                     key={header.id}
-                    style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                    style={{
+                      width: header.getSize() !== 150 ? header.getSize() : undefined,
+                      cursor: header.column.getCanSort() ? 'pointer' : undefined,
+                      userSelect: header.column.getCanSort() ? 'none' : undefined,
+                    }}
+                    onClick={header.column.getToggleSortingHandler()}
                   >
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : (
+                        <Group gap={4} wrap="nowrap">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === 'asc' && <Text size="xs">↑</Text>}
+                          {header.column.getIsSorted() === 'desc' && <Text size="xs">↓</Text>}
+                        </Group>
+                      )}
                   </Table.Th>
                 ))}
               </Table.Tr>
@@ -117,7 +157,7 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
                 <Table.Td colSpan={columns.length}>
                   <Text c="dimmed" ta="center" py="xl">
                     {filter === 'pending'
-                      ? 'No clients with pending disputes.'
+                      ? 'No pending disputes. Ghost is caught up.'
                       : 'No clients found.'}
                   </Text>
                 </Table.Td>
@@ -148,6 +188,7 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
                           <ExpandedDisputeRow
                             items={cache?.items ?? []}
                             isLoading={cache?.loading ?? true}
+                            clientId={clientId}
                           />
                         </Table.Td>
                       </Table.Tr>
@@ -158,6 +199,50 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
             )}
           </Table.Tbody>
         </Table>
+        </ScrollArea>
+
+        {table.getPageCount() > 1 && (
+          <Group justify="space-between" p="md" pt="sm">
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">Rows per page:</Text>
+              <Select
+                size="xs"
+                w={70}
+                data={PAGE_SIZE_OPTIONS}
+                value={String(table.getState().pagination.pageSize)}
+                onChange={(val) => table.setPageSize(Number(val))}
+                allowDeselect={false}
+              />
+            </Group>
+            <Group gap="xs">
+              <Text size="xs" c="dimmed">
+                {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
+                –
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  filteredData.length
+                )}
+                {' '}of {filteredData.length}
+              </Text>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                disabled={!table.getCanPreviousPage()}
+                onClick={() => table.previousPage()}
+              >
+                <IconChevronLeft size={16} />
+              </ActionIcon>
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                disabled={!table.getCanNextPage()}
+                onClick={() => table.nextPage()}
+              >
+                <IconChevronRight size={16} />
+              </ActionIcon>
+            </Group>
+          </Group>
+        )}
       </Paper>
 
       {/* Delete Confirmation Modal */}

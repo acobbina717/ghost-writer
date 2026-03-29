@@ -5,6 +5,7 @@ import {
   IconDashboard,
   IconUsers,
   IconFileText,
+  IconAddressBook,
 } from '@tabler/icons-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -13,9 +14,11 @@ import { api } from '../../../convex/_generated/api';
 
 interface NavLinksProps {
   userRole: 'admin' | 'team' | 'pending';
+  opened: boolean;
+  toggleNavbar: () => void;
 }
 
-export function NavLinks({ userRole }: NavLinksProps) {
+export function NavLinks({ userRole, opened, toggleNavbar }: NavLinksProps) {
   const pathname = usePathname();
   const isAdmin = userRole === 'admin';
 
@@ -35,8 +38,21 @@ export function NavLinks({ userRole }: NavLinksProps) {
         leftSection={<IconDashboard size={18} stroke={1.5} />}
         active={pathname === '/dashboard'}
         style={{
-          borderRadius: 'var(--mantine-radius-xs)',
+          borderRadius: 'var(--mantine-radius-sm)',
         }}
+        onClick={opened ? toggleNavbar : undefined}
+      />
+
+      <NavLink
+        component={Link}
+        href="/clients"
+        label="Clients"
+        leftSection={<IconAddressBook size={18} stroke={1.5} />}
+        active={pathname.startsWith('/clients')}
+        style={{
+          borderRadius: 'var(--mantine-radius-sm)',
+        }}
+        onClick={opened ? toggleNavbar : undefined}
       />
 
       {/* Admin Section */}
@@ -54,15 +70,16 @@ export function NavLinks({ userRole }: NavLinksProps) {
             leftSection={<IconUsers size={18} stroke={1.5} />}
             rightSection={
               pendingCount && pendingCount > 0 && (
-                <Badge size="sm" variant="filled" color="red" circle>
+                <Badge size="sm" variant="filled" circle>
                   {pendingCount}
                 </Badge>
               )
             }
             active={pathname.startsWith('/admin/users')}
             style={{
-              borderRadius: 'var(--mantine-radius-xs)',
+              borderRadius: 'var(--mantine-radius-sm)',
             }}
+            onClick={opened ? toggleNavbar : undefined}
           />
           
           <NavLink
@@ -72,8 +89,9 @@ export function NavLinks({ userRole }: NavLinksProps) {
             leftSection={<IconFileText size={18} stroke={1.5} />}
             active={pathname.startsWith('/admin/letters')}
             style={{
-              borderRadius: 'var(--mantine-radius-xs)',
+              borderRadius: 'var(--mantine-radius-sm)',
             }}
+            onClick={opened ? toggleNavbar : undefined}
           />
         </>
       )}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
@@ -16,9 +17,12 @@ import {
   Text,
   Paper,
   Group,
+  ScrollArea,
+  ActionIcon,
 } from '@mantine/core';
-import { IconArrowUp, IconArrowDown, IconArrowsSort } from '@tabler/icons-react';
+import { IconArrowUp, IconArrowDown, IconArrowsSort, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
 import type { LetterAnalytics } from '@/lib/convex-types';
+import { getCraInfo } from '@/lib/constants';
 
 // =============================================================================
 // TYPES
@@ -69,6 +73,28 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
   const columns = useMemo<ColumnDef<LetterAnalytics>[]>(
     () => [
       {
+        id: 'expand',
+        header: () => null,
+        cell: ({ row }) => {
+          const hasCraData = row.original.perCraStats && Object.keys(row.original.perCraStats).length > 0;
+          if (!hasCraData) return null;
+          return (
+            <ActionIcon
+              variant="subtle"
+              size="xs"
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); row.toggleExpanded(); }}
+              aria-label={row.getIsExpanded() ? 'Collapse CRA breakdown' : 'Expand CRA breakdown'}
+            >
+              {row.getIsExpanded()
+                ? <IconChevronDown size={14} />
+                : <IconChevronRight size={14} />}
+            </ActionIcon>
+          );
+        },
+        size: 30,
+        enableSorting: false,
+      },
+      {
         accessorKey: 'title',
         header: 'Letter Title',
         cell: ({ getValue }) => (
@@ -97,8 +123,16 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
       {
         accessorKey: 'successRate',
         header: 'Success Rate',
-        cell: ({ getValue }) => {
+        cell: ({ getValue, row }) => {
           const rate = getValue() as number | null;
+          const hasUsage = (row.original.totalDownloads ?? 0) > 0;
+          if (rate === null && hasUsage) {
+            return (
+              <Text size="xs" c="dimmed" fs="italic">
+                Waiting on outcomes
+              </Text>
+            );
+          }
           return (
             <Badge
               variant="light"
@@ -136,6 +170,9 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: (row) =>
+      row.original.perCraStats != null && Object.keys(row.original.perCraStats).length > 0,
   });
 
   const handleRowClick = (letterId: string) => {
@@ -144,7 +181,8 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
 
   return (
     <Paper withBorder radius="sm">
-      <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover>
+      <ScrollArea type="auto">
+      <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover style={{ minWidth: 600 }}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -181,21 +219,46 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
             </Table.Tr>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <Table.Tr
-                key={row.id}
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleRowClick(row.original.id)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <Table.Td key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </Table.Td>
-                ))}
-              </Table.Tr>
+              <Fragment key={row.id}>
+                <Table.Tr
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleRowClick(row.original.id)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <Table.Td key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </Table.Td>
+                  ))}
+                </Table.Tr>
+                {row.getIsExpanded() && (
+                  <Table.Tr>
+                    <Table.Td colSpan={columns.length} style={{ background: 'var(--bg-elevated)', padding: '8px 16px 8px 48px' }}>
+                      <Group gap="lg" wrap="wrap">
+                        {Object.entries(row.original.perCraStats).map(([cra, stats]) => {
+                          const craInfo = getCraInfo(cra);
+                          return (
+                            <Group key={cra} gap="xs">
+                              <Badge variant="light" color={craInfo.color} size="xs">
+                                {craInfo.label}
+                              </Badge>
+                              <Text size="xs" c="dimmed">
+                                {stats.rate !== null
+                                  ? `${stats.rate}% (${stats.removed}/${stats.resolved})`
+                                  : 'No outcomes'}
+                              </Text>
+                            </Group>
+                          );
+                        })}
+                      </Group>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Fragment>
             ))
           )}
         </Table.Tbody>
       </Table>
+      </ScrollArea>
     </Paper>
   );
 }

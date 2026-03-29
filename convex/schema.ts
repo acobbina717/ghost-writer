@@ -16,7 +16,8 @@ export default defineSchema({
   })
     .index("by_clerk_id", ["clerkId"])
     .index("by_email", ["email"])
-    .index("by_username", ["username"]),
+    .index("by_username", ["username"])
+    .index("by_role", ["role"]),
 
   // ============================================================================
   // CLIENTS TABLE
@@ -32,6 +33,7 @@ export default defineSchema({
     state: v.string(), // 2-letter state code
     zipCode: v.string(), // 5-digit ZIP
     last4SSN: v.string(), // Stored as "1234", displayed as "XXX-XX-1234"
+    dateOfBirth: v.optional(v.string()), // Stored as "MM/DD/YYYY"
     userId: v.id("users"),
     createdAt: v.number(), // Unix timestamp
   }).index("by_user", ["userId"]),
@@ -42,23 +44,35 @@ export default defineSchema({
   disputeItems: defineTable({
     clientId: v.id("clients"),
     disputeType: v.string(), // e.g., "Medical", "Collection", "Late Payment"
-    creditorName: v.optional(v.string()),
-    accountNumber: v.optional(v.string()),
     craTarget: v.string(), // 'experian' | 'equifax' | 'transunion'
     currentRound: v.number(),
     status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_client", ["clientId"]),
+    // Common to all schema groups
+    creditorName: v.optional(v.string()),
+    // Inquiry fields
+    inquiryDate: v.optional(v.string()),
+    // Account-Based fields
+    accountNumber: v.optional(v.string()),
+    dateOpened: v.optional(v.string()),
+    balance: v.optional(v.string()),
+    // Late Payment fields
+    monthsLate: v.optional(v.string()), // "30" | "60" | "90" | "120"
+    monthLate: v.optional(v.string()),  // "03/2022"
+  })
+    .index("by_client", ["clientId"])
+    .index("by_status", ["status"]),
 
   // ============================================================================
   // LETTERS TABLE
   // ============================================================================
   letters: defineTable({
     title: v.string(),
-    content: v.string(), // Sanitized HTML from Tiptap
+    content: v.string(), // HTML with optional <!--dispute_block_start/end--> markers
+    disputeTypes: v.array(v.string()), // Must all belong to the same schema group
     applicableCRAs: v.array(v.string()), // ['experian', 'equifax', 'transunion']
-    formSchema: v.optional(v.any()), // Ghost's custom field definitions
+    maxDisputeItems: v.optional(v.number()), // Max items per CRA per letter
     createdAt: v.number(),
     updatedAt: v.number(),
   }),
@@ -71,13 +85,13 @@ export default defineSchema({
     userId: v.id("users"),
     letterId: v.id("letters"),
     disputeItemIds: v.array(v.id("disputeItems")),
-    formAnswers: v.any(), // Key-value pairs of dynamic form inputs
     status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
     createdAt: v.number(),
   })
     .index("by_client", ["clientId"])
     .index("by_user", ["userId"])
-    .index("by_letter", ["letterId"]),
+    .index("by_letter", ["letterId"])
+    .index("by_created_at", ["createdAt"]),
 
   // ============================================================================
   // AUDIT LOGS TABLE
@@ -89,8 +103,10 @@ export default defineSchema({
     userEmail: v.optional(v.string()), // Denormalized for when user is deleted
     entityType: v.string(), // 'client', 'dispute_item', 'letter', 'user'
     entityId: v.optional(v.string()), // String because it could reference any table
-    metadata: v.optional(v.any()), // Action-specific context
+    metadata: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean()))),
     createdAt: v.number(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_entity", ["entityType", "entityId"]),
 });
-

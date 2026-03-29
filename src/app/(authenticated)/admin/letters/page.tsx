@@ -58,7 +58,7 @@ export default function AdminLettersPage() {
         <EmptyState
           icon={<IconFileText size={48} />}
           title="No Letters Yet"
-          description="Create your first dispute letter template to get started. Use smart tags like {{client_name}} to automatically fill in client data."
+          description="Ghost needs templates to work with. Create your first letter using smart tags like {{client_name}} to auto-fill client data."
           action={{
             label: 'Create First Letter',
             href: '/admin/letters/new',

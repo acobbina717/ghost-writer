@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Center,
   Card,
+  Loader,
   Stack,
   Title,
   Text,
@@ -20,13 +21,8 @@ import { IconUserCheck, IconBrandTelegram, IconBrandDiscord, IconBrandInstagram 
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle';
-import { FullPageLoader } from '@/components/FullPageLoader';
 
-const SOCIAL_PLATFORMS = [
-  { value: 'telegram', label: 'Telegram' },
-  { value: 'discord', label: 'Discord' },
-  { value: 'instagram', label: 'Instagram' },
-];
+import { SOCIAL_PLATFORMS } from '../../../convex/constants';
 
 interface OnboardingFormProps {
   userName: string;
@@ -105,12 +101,19 @@ export function OnboardingForm({ userName }: OnboardingFormProps) {
 
   // Show loading while checking if user exists
   if (existingUser === undefined) {
-    return <FullPageLoader />;
+    return <Center h="100vh" bg="var(--bg-base)"><Loader size="lg" /></Center>;
   }
 
   // If user exists, show loading while redirecting
   if (existingUser) {
-    return <FullPageLoader message="Redirecting..." />;
+    return (
+      <Center h="100vh" bg="var(--bg-base)">
+        <Stack align="center" gap="md">
+          <Loader size="lg" />
+          <Text c="dimmed" size="sm">Redirecting...</Text>
+        </Stack>
+      </Center>
+    );
   }
 
   return (
@@ -127,7 +130,7 @@ export function OnboardingForm({ userName }: OnboardingFormProps) {
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack gap="lg">
               <Stack align="center" gap="md">
-                <ThemeIcon variant="light" size={64} radius="xl" color="red">
+                <ThemeIcon variant="light" size={64} radius="xl">
                   <IconUserCheck size={32} />
                 </ThemeIcon>
                 <div style={{ textAlign: 'center' }}>
@@ -141,7 +144,7 @@ export function OnboardingForm({ userName }: OnboardingFormProps) {
               <Select
                 label="Social Platform"
                 placeholder="Select your platform"
-                data={SOCIAL_PLATFORMS}
+                data={[...SOCIAL_PLATFORMS]}
                 leftSection={
                   form.values.socialPlatform === 'telegram' ? <IconBrandTelegram size={16} /> :
                   form.values.socialPlatform === 'discord' ? <IconBrandDiscord size={16} /> :

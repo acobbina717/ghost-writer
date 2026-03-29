@@ -1,7 +1,35 @@
 import { formatAddress } from './formatAddress';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Hydration data combining client, dispute, and form data
+ * A single dispute item for hydration — all fields optional,
+ * populated based on the dispute type's schema group.
+ */
+export interface DisputeItemData {
+  creditorName?: string | null;
+  accountNumber?: string | null;
+  inquiryDate?: string | null;
+  dateOpened?: string | null;
+  balance?: string | null;
+  monthsLate?: string | null;
+  monthLate?: string | null;
+}
+
+/**
+ * Hydration data combining client and dispute data.
+ * No more formAnswers, clientInfoFields, or currentRound.
  */
 export interface HydrationData {
   // Client data
@@ -13,54 +41,133 @@ export interface HydrationData {
   state: string;
   zipCode: string;
   last4SSN: string;
-  
-  // Dispute data
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string | null;
+
+  // Dispute context
   disputeType: string;
-  creditorName?: string | null;
-  accountNumber?: string | null;
-  currentRound: number;
-  
-  // Dynamic form answers
-  formAnswers?: Record<string, any>;
+
+  // Multiple dispute items for the repeating block
+  disputeItems?: DisputeItemData[];
 }
 
 /**
- * Replace all {{tag}} instances in HTML template with actual values
- * Supports global tags, dispute tags, and dynamic form tags
+ * Valid client info field keys for backward-compat {{client_info_block}} tag.
+ * Keep during transition period — new templates use individual tags.
+ */
+export const CLIENT_INFO_FIELD_OPTIONS = [
+  { value: 'name', label: 'Full Name' },
+  { value: 'ssn', label: 'Social Security Number' },
+  { value: 'dob', label: 'Date of Birth' },
+  { value: 'address', label: 'Mailing Address' },
+  { value: 'email', label: 'Email Address' },
+  { value: 'phone', label: 'Phone Number' },
+] as const;
+
+// =============================================================================
+// PASS 1: Expand the repeating dispute block
+// =============================================================================
+
+const BLOCK_START = '<!--dispute_block_start-->';
+const BLOCK_END = '<!--dispute_block_end-->';
+
+/**
+ * Per-item tag replacement map for a single dispute item.
+ */
+function buildItemReplacements(item: DisputeItemData, index: number): Record<string, string> {
+  return {
+    item_number: String(index + 1),
+    item_creditor_name: item.creditorName || '',
+    item_account_number: item.accountNumber || '',
+    item_inquiry_date: item.inquiryDate || '',
+    item_date_opened: item.dateOpened || '',
+    item_balance: item.balance || '',
+    item_months_late: item.monthsLate || '',
+    item_month_late: item.monthLate || '',
+  };
+}
+
+/**
+ * Replace per-item tags within a block HTML string.
+ */
+function hydrateItemBlock(blockHtml: string, replacements: Record<string, string>): string {
+  let result = blockHtml;
+  for (const [tag, value] of Object.entries(replacements)) {
+    const regex = new RegExp(`\\{\\{\\s*${escapeRegex(tag)}\\s*\\}\\}`, 'g');
+    result = result.replace(regex, escapeHtml(value));
+  }
+  return result;
+}
+
+/**
+ * Pass 1: Find <!--dispute_block_start-->...<!--dispute_block_end--> markers,
+ * expand the content for each dispute item, and replace the marker region.
+ */
+function expandDisputeBlock(template: string, items?: DisputeItemData[]): string {
+  const startIdx = template.indexOf(BLOCK_START);
+  const endIdx = template.indexOf(BLOCK_END);
+
+  // No markers found — skip expansion
+  if (startIdx === -1 || endIdx === -1) return template;
+
+  const blockContent = template.substring(startIdx + BLOCK_START.length, endIdx);
+  const before = template.substring(0, startIdx);
+  const after = template.substring(endIdx + BLOCK_END.length);
+
+  // Markers found but no items — remove the entire region
+  if (!items || items.length === 0) {
+    return before + after;
+  }
+
+  // Expand the block for each item
+  const expandedBlocks = items.map((item, index) => {
+    const replacements = buildItemReplacements(item, index);
+    return hydrateItemBlock(blockContent, replacements);
+  });
+
+  return before + expandedBlocks.join('\n') + after;
+}
+
+// =============================================================================
+// PASS 2: Replace global tags
+// =============================================================================
+
+/**
+ * Replace all {{tag}} instances in HTML template with actual values.
+ * Two-pass process: 1) expand dispute block, 2) replace global tags.
  */
 export function hydrateTemplate(template: string, data: HydrationData): string {
-  // Build tag replacement map
+  // Pass 1: Expand the repeating block
+  let hydrated = expandDisputeBlock(template, data.disputeItems);
+
+  // Pass 2: Build global tag replacement map
   const replacements: Record<string, string> = {
-    // Global client tags
+    // Individual client info tags
     client_name: `${data.firstName} ${data.lastName}`,
     first_name: data.firstName,
     last_name: data.lastName,
     client_address: formatAddress(data),
+    client_ssn: `XXX-XX-${data.last4SSN}`,
+    client_dob: data.dateOfBirth || '',
+    client_email: data.email || '',
+    client_phone: data.phone || '',
+
+    // Legacy aliases (backward compatibility)
     last_4_ssn: `XXX-XX-${data.last4SSN}`,
-    
-    // Dispute tags
-    dispute_type: data.disputeType,
-    creditor_name: data.creditorName || '',
-    account_number: data.accountNumber || '',
-    current_round: String(data.currentRound),
-    
+
     // System tags
     current_date: new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     }),
-    
-    // Include all form answers
-    ...(data.formAnswers || {}),
   };
 
-  // Replace all tags in template
-  let hydrated = template;
+  // Replace all tags
   for (const [tag, value] of Object.entries(replacements)) {
-    // Match {{tag}} with optional whitespace
-    const regex = new RegExp(`\\{\\{\\s*${tag}\\s*\\}\\}`, 'g');
-    hydrated = hydrated.replace(regex, String(value));
+    const regex = new RegExp(`\\{\\{\\s*${escapeRegex(tag)}\\s*\\}\\}`, 'g');
+    hydrated = hydrated.replace(regex, escapeHtml(String(value)));
   }
 
   return hydrated;
@@ -74,13 +181,13 @@ export function extractTags(template: string): string[] {
   const tagRegex = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g;
   const tags: string[] = [];
   let match;
-  
+
   while ((match = tagRegex.exec(template)) !== null) {
     if (!tags.includes(match[1])) {
       tags.push(match[1]);
     }
   }
-  
+
   return tags;
 }
 

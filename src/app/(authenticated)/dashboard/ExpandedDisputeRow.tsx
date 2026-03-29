@@ -1,24 +1,18 @@
 'use client';
 
-import { Table, Badge, Text, Group, ThemeIcon, Box, Loader, Center } from '@mantine/core';
-import { IconCircle } from '@tabler/icons-react';
+import { Table, Badge, Text, Group, ThemeIcon, Box, Loader, Center, Button } from '@mantine/core';
+import { IconCircle, IconExternalLink } from '@tabler/icons-react';
+import Link from 'next/link';
 import type { ConvexDisputeItem } from '@/lib/convex-types';
 import { getCraInfo, DISPUTE_STATUS_COLORS } from '@/lib/constants';
-
-// =============================================================================
-// TYPES
-// =============================================================================
 
 interface ExpandedDisputeRowProps {
   items: ConvexDisputeItem[];
   isLoading?: boolean;
+  clientId: string;
 }
 
-// =============================================================================
-// COMPONENT
-// =============================================================================
-
-export function ExpandedDisputeRow({ items, isLoading }: ExpandedDisputeRowProps) {
+export function ExpandedDisputeRow({ items, isLoading, clientId }: ExpandedDisputeRowProps) {
   if (isLoading) {
     return (
       <Center py="md">
@@ -104,6 +98,18 @@ export function ExpandedDisputeRow({ items, isLoading }: ExpandedDisputeRowProps
           })}
         </Table.Tbody>
       </Table>
+      <Group justify="flex-end" p="sm" pt={0}>
+        <Button
+          size="xs"
+          variant="subtle"
+          component={Link}
+          href={`/clients/${clientId}`}
+          rightSection={<IconExternalLink size={12} />}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          View Full Profile
+        </Button>
+      </Group>
     </Box>
   );
 }

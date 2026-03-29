@@ -40,6 +40,12 @@ export function createColumns(
     {
       accessorKey: 'name',
       header: 'Client Name',
+      enableSorting: true,
+      sortingFn: (rowA, rowB) => {
+        const a = `${rowA.original.firstName} ${rowA.original.lastName}`.toLowerCase();
+        const b = `${rowB.original.firstName} ${rowB.original.lastName}`.toLowerCase();
+        return a.localeCompare(b);
+      },
       cell: ({ row }) => {
         const client = row.original;
         return (
@@ -61,6 +67,7 @@ export function createColumns(
     {
       accessorKey: 'daysActive',
       header: 'Days Active',
+      enableSorting: true,
       cell: ({ row }) => {
         const { daysActive, alertLevel } = row.original;
         return (
@@ -76,6 +83,7 @@ export function createColumns(
     {
       accessorKey: 'totalDisputes',
       header: 'Total Disputes',
+      enableSorting: true,
       cell: ({ getValue }) => (
         <Text size="sm">{getValue() as number}</Text>
       ),
@@ -85,6 +93,7 @@ export function createColumns(
     {
       accessorKey: 'pendingDisputes',
       header: 'Pending Items',
+      enableSorting: true,
       cell: ({ getValue }) => {
         const pending = getValue() as number;
         return (

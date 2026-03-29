@@ -3,6 +3,7 @@
 
 /* Import Mantine core styles */
 @import '@mantine/core/styles.css';
+@import '@mantine/dates/styles.css';
 @import '@mantine/notifications/styles.css';
 @import '@mantine/tiptap/styles.css';
 
@@ -38,13 +39,13 @@ html {
 
 /* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--color-red-primary);
+  outline: 2px solid var(--color-action-primary);
   outline-offset: 2px;
 }
 
 /* Selection styles */
 ::selection {
-  background-color: var(--color-red-primary);
+  background-color: var(--color-action-primary);
   color: white;
 }
 
@@ -69,13 +70,13 @@ html {
 
 /* Link styles */
 a {
-  color: var(--color-red-primary);
+  color: var(--color-action-primary);
   text-decoration: none;
   transition: color var(--duration-fast) var(--ease-default);
 }
 
 a:hover {
-  color: var(--color-red-hover);
+  color: var(--color-action-hover);
 }
 
 /* Code/Mono text */
@@ -90,5 +91,75 @@ pre,
 .id-display {
   font-family: var(--font-mono);
   letter-spacing: 0.05em;
+}
+
+/* Clerk component theme overrides --
+   The Clerk "Secured by" branding footer sits outside the styled card
+   and doesn't inherit theme variables. Force it to respect the color scheme. */
+[data-mantine-color-scheme='dark'] .cl-rootBox .cl-cardBox {
+  background-color: var(--bg-surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+[data-mantine-color-scheme='dark'] .cl-rootBox .cl-cardBox > :not(.cl-card) {
+  background-color: var(--bg-surface) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-mantine-color-scheme='dark'] .cl-rootBox .cl-cardBox > :not(.cl-card) * {
+  color: var(--text-muted) !important;
+}
+
+[data-mantine-color-scheme='light'] .cl-rootBox .cl-cardBox {
+  background-color: var(--bg-surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+[data-mantine-color-scheme='light'] .cl-rootBox .cl-cardBox > :not(.cl-card) {
+  background-color: var(--bg-surface) !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-mantine-color-scheme='light'] .cl-rootBox .cl-cardBox > :not(.cl-card) * {
+  color: var(--text-muted) !important;
+}
+
+.cl-rootBox .cl-cardBox > :not(.cl-card) a {
+  color: var(--color-action-primary) !important;
+}
+
+.cl-formFieldInput::placeholder {
+  color: var(--text-tertiary) !important;
+  opacity: 1 !important;
+}
+
+/* TiptapEditor content — no forced spacing; admin controls everything */
+.mantine-RichTextEditor-content .ProseMirror p {
+  margin: 0;
+}
+
+.mantine-RichTextEditor-content .ProseMirror h1,
+.mantine-RichTextEditor-content .ProseMirror h2,
+.mantine-RichTextEditor-content .ProseMirror h3 {
+  margin: 0;
+}
+
+/* Interactive card hover/active states */
+.card-interactive {
+  transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.card-interactive:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.card-interactive:active {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 

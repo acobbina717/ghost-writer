@@ -9,7 +9,6 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { getSocialIcon } from '@/lib/utils';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle';
-import { FullPageLoader } from '@/components/FullPageLoader';
 import { StatusPoller } from './StatusPoller';
 import { SignOutLink } from './SignOutLink';
 
@@ -38,12 +37,12 @@ export default function WaitingRoomPage() {
 
   // Loading state
   if (!authLoaded || user === undefined) {
-    return <FullPageLoader />;
+    return <Center h="100vh" bg="var(--bg-base)"><Loader size="lg" /></Center>;
   }
 
   // Don't render if user is not pending
   if (!user || user.role !== 'pending') {
-    return <FullPageLoader />;
+    return <Center h="100vh" bg="var(--bg-base)"><Loader size="lg" /></Center>;
   }
 
   return (

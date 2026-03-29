@@ -9,6 +9,7 @@
  */
 
 import type * as clients from "../clients.js";
+import type * as constants from "../constants.js";
 import type * as letters from "../letters.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as pdf from "../pdf.js";
@@ -22,6 +23,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   clients: typeof clients;
+  constants: typeof constants;
   letters: typeof letters;
   "lib/auth": typeof lib_auth;
   pdf: typeof pdf;

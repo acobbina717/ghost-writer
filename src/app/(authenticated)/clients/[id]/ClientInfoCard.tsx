@@ -17,6 +17,7 @@ import {
   IconMail,
   IconPhone,
   IconMapPin,
+  IconCalendar,
   IconEdit,
   IconTrash,
   IconAlertTriangle,
@@ -31,10 +32,19 @@ import { PURGE_ENABLED } from '@/lib/constants';
 // TYPES
 // =============================================================================
 
+interface DisputeStats {
+  total: number;
+  removed: number;
+  pending: number;
+  verified: number;
+  removalRate: number | null;
+}
+
 interface ClientInfoCardProps {
   client: ConvexClient;
   daysActive: number;
   totalDisputes: number;
+  disputeStats?: DisputeStats;
 }
 
 // =============================================================================
@@ -51,7 +61,7 @@ function getAlertLevel(daysActive: number): 'none' | 'warning' | 'danger' {
 // COMPONENT
 // =============================================================================
 
-export function ClientInfoCard({ client, daysActive, totalDisputes }: ClientInfoCardProps) {
+export function ClientInfoCard({ client, daysActive, totalDisputes, disputeStats }: ClientInfoCardProps) {
   const [editOpened, { open: openEdit, close: closeEdit }] = useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
 
@@ -104,16 +114,52 @@ export function ClientInfoCard({ client, daysActive, totalDisputes }: ClientInfo
             </Group>
           </Group>
 
+          {/* Dispute Progress */}
+          {disputeStats && disputeStats.total > 0 && (
+            <>
+              <Divider />
+              <Group gap="lg">
+                <Text size="sm">
+                  {disputeStats.total} item{disputeStats.total !== 1 ? 's' : ''} total
+                  {' · '}{disputeStats.removed} removed
+                  {' · '}{disputeStats.pending} pending
+                  {disputeStats.verified > 0 && ` · ${disputeStats.verified} verified`}
+                </Text>
+                {disputeStats.removalRate !== null && (
+                  <Badge
+                    variant="light"
+                    color={disputeStats.removalRate >= 70 ? 'green' : disputeStats.removalRate >= 40 ? 'yellow' : 'gray'}
+                    size="sm"
+                  >
+                    {disputeStats.removalRate}% removal rate
+                  </Badge>
+                )}
+              </Group>
+            </>
+          )}
+
           <Divider />
 
           {/* Contact Info */}
-          <SimpleGrid cols={{ base: 1, sm: 3 }}>
+          <SimpleGrid cols={{ base: 1, xs: 2, sm: 4 }}>
             <Group gap="sm">
-              <ThemeIcon variant="light" size="md" radius="xs">
+              <ThemeIcon variant="light" size="md" radius="sm">
+                <IconCalendar size={16} />
+              </ThemeIcon>
+              <div>
+                <Text size="xs" c="dimmed">
+                  Date of Birth
+                </Text>
+                <Text size="sm">{client.dateOfBirth ?? '—'}</Text>
+              </div>
+            </Group>
+
+            <Group gap="sm">
+              <ThemeIcon variant="light" size="md" radius="sm">
                 <IconMail size={16} />
               </ThemeIcon>
               <div>
-                <Text size="xs" c="dimmed" tt="uppercase">
+                <Text size="xs" c="dimmed">
                   Email
                 </Text>
                 <Text size="sm">{client.email}</Text>
@@ -121,11 +167,11 @@ export function ClientInfoCard({ client, daysActive, totalDisputes }: ClientInfo
             </Group>
 
             <Group gap="sm">
-              <ThemeIcon variant="light" size="md" radius="xs">
+              <ThemeIcon variant="light" size="md" radius="sm">
                 <IconPhone size={16} />
               </ThemeIcon>
               <div>
-                <Text size="xs" c="dimmed" tt="uppercase">
+                <Text size="xs" c="dimmed">
                   Phone
                 </Text>
                 <Text size="sm">{client.phone}</Text>
@@ -133,11 +179,11 @@ export function ClientInfoCard({ client, daysActive, totalDisputes }: ClientInfo
             </Group>
 
             <Group gap="sm">
-              <ThemeIcon variant="light" size="md" radius="xs">
+              <ThemeIcon variant="light" size="md" radius="sm">
                 <IconMapPin size={16} />
               </ThemeIcon>
               <div>
-                <Text size="xs" c="dimmed" tt="uppercase">
+                <Text size="xs" c="dimmed">
                   Address
                 </Text>
                 <Text size="sm" style={{ whiteSpace: 'pre-line' }}>
@@ -166,6 +212,7 @@ export function ClientInfoCard({ client, daysActive, totalDisputes }: ClientInfo
           state: client.state,
           zipCode: client.zipCode,
           last4SSN: client.last4SSN,
+          dateOfBirth: client.dateOfBirth ?? null,
         }}
       />
 

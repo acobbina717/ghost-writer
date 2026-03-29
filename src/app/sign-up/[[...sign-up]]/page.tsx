@@ -12,7 +12,7 @@ export default function SignUpPage() {
   if (!isLoaded || isSignedIn) {
     return (
       <Center h="100vh" bg="var(--bg-base)">
-        <Loader color="red" size="lg" />
+        <Loader size="lg" />
       </Center>
     );
   }

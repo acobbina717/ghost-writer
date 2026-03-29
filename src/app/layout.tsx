@@ -3,10 +3,9 @@ import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/c
 import { Notifications } from '@mantine/notifications';
 import { ClerkProvider } from '@clerk/nextjs';
 import { ghostTheme } from '@/theme/ghost-theme';
-import { 
-  redPrimary, 
-  redHover,
-  dark as darkColors,
+import {
+  actionPrimary,
+  actionHover,
   semantic,
   fonts,
   radius,
@@ -21,12 +20,7 @@ export const metadata: Metadata = {
 
 const clerkAppearance = {
   variables: {
-    colorPrimary: redPrimary,
-    colorBackground: darkColors.surface,
-    colorInputBackground: darkColors.inset,
-    colorInputText: darkColors.textPrimary,
-    colorText: darkColors.textPrimary,
-    colorTextSecondary: darkColors.textSecondary,
+    colorPrimary: actionPrimary,
     colorDanger: semantic.error,
     borderRadius: radius.md,
     fontFamily: fonts.sans,
@@ -35,116 +29,113 @@ const clerkAppearance = {
     rootBox: {
       width: '100%',
     },
-    
-    card: {
-      backgroundColor: darkColors.surface,
-      border: `1px solid ${darkColors.borderDefault}`,
-      borderRadius: radius.md,
-      boxShadow: darkColors.shadowLg,
+
+    cardBox: {
+      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.2)',
     },
-    
+
+    card: {
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border-default)',
+      borderRadius: radius.md,
+      boxShadow: 'none',
+    },
+
     formFieldInput: {
-      backgroundColor: darkColors.inset,
-      border: `1px solid ${darkColors.borderDefault}`,
-      borderRadius: radius.xs,
-      color: darkColors.textPrimary,
+      backgroundColor: 'var(--bg-inset)',
+      border: '1px solid var(--border-default)',
+      borderRadius: radius.sm,
+      color: 'var(--text-primary)',
       transition: 'border-color 150ms ease, box-shadow 150ms ease',
     },
     'formFieldInput:focus': {
-      borderColor: redPrimary,
-      boxShadow: `0 0 0 2px ${redPrimary}33`,
+      borderColor: actionPrimary,
+      boxShadow: `0 0 0 2px ${actionPrimary}33`,
       outline: 'none',
     },
-    
+
     formFieldLabel: {
-      color: darkColors.textSecondary,
-      fontSize: '11px',
+      color: 'var(--text-secondary)',
+      fontSize: '12px',
       fontWeight: '500',
-      letterSpacing: '0.05em',
-      textTransform: 'uppercase' as const,
     },
-    
+
     formButtonPrimary: {
-      backgroundColor: redPrimary,
+      backgroundColor: actionPrimary,
       color: '#FFFFFF',
-      fontWeight: '700',
-      letterSpacing: '0.05em',
-      textTransform: 'uppercase' as const,
-      borderRadius: radius.xs,
-      boxShadow: '0 2px 4px rgba(226, 28, 28, 0.25)',
+      fontWeight: '600',
+      borderRadius: radius.sm,
+      boxShadow: `0 2px 4px ${actionPrimary}40`,
     },
     'formButtonPrimary:hover': {
-      backgroundColor: redHover,
-      boxShadow: '0 4px 8px rgba(226, 28, 28, 0.35)',
+      backgroundColor: actionHover,
+      boxShadow: `0 4px 8px ${actionHover}50`,
     },
-    
+
     footerActionLink: {
-      color: redPrimary,
+      color: actionPrimary,
     },
     'footerActionLink:hover': {
-      color: redHover,
+      color: actionHover,
     },
-    
+
     headerTitle: {
-      color: darkColors.textPrimary,
+      color: 'var(--text-primary)',
       fontWeight: '900',
     },
     headerSubtitle: {
-      color: darkColors.textTertiary,
+      color: 'var(--text-tertiary)',
       fontSize: '12px',
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase' as const,
     },
-    
+
     identityPreviewText: {
-      color: darkColors.textPrimary,
+      color: 'var(--text-primary)',
     },
     identityPreviewEditButton: {
-      color: redPrimary,
+      color: actionPrimary,
     },
-    
+
     formFieldInputShowPasswordButton: {
-      color: darkColors.textTertiary,
+      color: 'var(--text-tertiary)',
     },
     'formFieldInputShowPasswordButton:hover': {
-      color: darkColors.textSecondary,
+      color: 'var(--text-secondary)',
     },
-    
+
     otpCodeFieldInput: {
-      backgroundColor: darkColors.inset,
-      border: `1px solid ${darkColors.borderDefault}`,
-      borderRadius: radius.xs,
-      color: darkColors.textPrimary,
+      backgroundColor: 'var(--bg-inset)',
+      border: '1px solid var(--border-default)',
+      borderRadius: radius.sm,
+      color: 'var(--text-primary)',
     },
-    
+
     footer: {
-      backgroundColor: darkColors.surface,
-      color: darkColors.textTertiary,
+      backgroundColor: 'var(--bg-surface)',
+      borderTop: '1px solid var(--border-default)',
+      color: 'var(--text-tertiary)',
     },
     footerAction: {
       backgroundColor: 'transparent',
-      color: darkColors.textTertiary,
+      color: 'var(--text-tertiary)',
     },
     footerActionText: {
-      color: darkColors.textTertiary,
+      color: 'var(--text-tertiary)',
     },
     footerPages: {
-      backgroundColor: 'transparent',
-      color: darkColors.textMuted,
+      backgroundColor: 'var(--bg-surface)',
+      color: 'var(--text-muted)',
     },
     footerPagesLink: {
-      color: darkColors.textMuted,
+      color: 'var(--text-muted)',
     },
     'footerPagesLink:hover': {
-      color: redPrimary,
+      color: actionPrimary,
     },
-    
-    // Internal elements
+
     formFieldInputGroup: {
-      borderColor: darkColors.borderDefault,
+      borderColor: 'var(--border-default)',
     },
-    
-    // Hide social login buttons (not using OAuth providers)
+
     socialButtonsBlockButton: {
       display: 'none',
     },
@@ -173,14 +164,14 @@ export default function RootLayout({
     return (
       <html lang="en" {...mantineHtmlProps}>
         <head>
-          <ColorSchemeScript defaultColorScheme="auto" />
+          <ColorSchemeScript defaultColorScheme="light" />
           <link
             href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
             rel="stylesheet"
           />
         </head>
         <body>
-          <MantineProvider theme={ghostTheme} defaultColorScheme="auto">
+          <MantineProvider theme={ghostTheme} defaultColorScheme="light">
             <Notifications position="bottom-right" />
             {children}
           </MantineProvider>
@@ -192,7 +183,7 @@ export default function RootLayout({
   return (
     <html lang="en" {...mantineHtmlProps}>
       <head>
-        <ColorSchemeScript defaultColorScheme="auto" />
+        <ColorSchemeScript defaultColorScheme="light" />
         {/* Satoshi font from Fontshare */}
         <link
           href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
@@ -202,7 +193,7 @@ export default function RootLayout({
       <body>
         <ClerkProvider appearance={clerkAppearance}>
           <ConvexClientProvider>
-            <MantineProvider theme={ghostTheme} defaultColorScheme="auto">
+            <MantineProvider theme={ghostTheme} defaultColorScheme="light">
               <Notifications position="bottom-right" />
               {children}
             </MantineProvider>

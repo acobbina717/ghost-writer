@@ -27,10 +27,10 @@ export default function GlobalError({
       }}>
         <div style={{ textAlign: 'center', padding: '2rem' }}>
           <h1 style={{ color: '#fff', marginBottom: '1rem' }}>
-            Something went wrong
+            Ghost hit a snag
           </h1>
           <p style={{ color: '#888', maxWidth: 400, margin: '0 auto 1.5rem' }}>
-            An unexpected error occurred. Our team has been notified.
+            Something unexpected happened. The team has been notified.
           </p>
           <button 
             onClick={() => reset()}

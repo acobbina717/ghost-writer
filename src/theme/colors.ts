@@ -25,11 +25,32 @@ export const red = {
   9: '#831212', // Darkest
 } as const;
 
-export const redPrimary = red[6];
-export const redHover = red[7];
+// =============================================================================
+// SLATE BLUE - Primary Action Color
+// Trustworthy, professional, distinct from all semantic colors.
+// Red is the brand signature; Slate Blue is the functional action color.
+// =============================================================================
+
+export const action = {
+  0: '#EEF2FF',
+  1: '#E0E7FF',
+  2: '#C7D2FE',
+  3: '#A5B4FC',
+  4: '#818CF8',
+  5: '#6366F1',
+  6: '#4B6BFB', // Primary
+  7: '#4338CA', // Hover
+  8: '#3730A3', // Active
+  9: '#312E81', // Darkest
+} as const;
+
+export const actionPrimary = action[6];
+export const actionHover = action[7];
 
 // =============================================================================
 // DARK MODE PALETTE - Simplified & Lifted
+// TODO: defaultColorScheme is set to "light" in layout.tsx. Remove these
+// dark mode tokens if dark mode is not planned, or implement dark mode support.
 // =============================================================================
 
 export const dark = {
@@ -79,7 +100,7 @@ export const light = {
 export const semantic = {
   success: '#10B981',
   warning: '#F59E0B',
-  error: '#EF4444',
+  error: '#E5484D',
   info: '#0EA5E9',
 } as const;
 
@@ -98,6 +119,19 @@ export const mantineRed = [
   red[7],
   red[8],
   red[9],
+] as const;
+
+export const mantineAction = [
+  action[0],
+  action[1],
+  action[2],
+  action[3],
+  action[4],
+  action[5],
+  action[6],
+  action[7],
+  action[8],
+  action[9],
 ] as const;
 
 export const mantineDark = [

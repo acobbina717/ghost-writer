@@ -1,13 +1,62 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAuth } from "./lib/auth";
+import { DISPUTE_TYPES, VALID_CRA_TARGETS, VALID_US_STATES, PURGE_WARNING_DAYS, PURGE_DANGER_DAYS, getSchemaGroupForType, getValidFieldKeys } from "./constants";
+import { Doc, Id } from "./_generated/dataModel";
 
-// Constants
-// TODO: When PURGE_ENABLED is true in frontend, implement convex/crons.ts
-// to automate actual purging. Backend continues to calculate alert levels
-// for data integrity, but frontend controls warning display via feature flag.
-const PURGE_WARNING_DAYS = 80;
-const PURGE_DANGER_DAYS = 85;
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+function validateClientFields(args: {
+  email: string;
+  phone: string;
+  state: string;
+  zipCode: string;
+  last4SSN: string;
+  dateOfBirth?: string;
+}) {
+  if (!/^\d{4}$/.test(args.last4SSN)) {
+    throw new Error("last4SSN must be exactly 4 digits");
+  }
+  if (!/^\d{5}$/.test(args.zipCode)) {
+    throw new Error("zipCode must be exactly 5 digits");
+  }
+  if (!(VALID_US_STATES as readonly string[]).includes(args.state)) {
+    throw new Error("Invalid state code");
+  }
+  // Stricter email validation: user@domain.tld, min 2-char TLD, no consecutive dots
+  if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$/.test(args.email)) {
+    throw new Error("Invalid email format");
+  }
+  if (!/^\+?[\d\s()-]{7,20}$/.test(args.phone)) {
+    throw new Error("Invalid phone number format");
+  }
+  if (args.dateOfBirth !== undefined && args.dateOfBirth !== '') {
+    if (!/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(args.dateOfBirth)) {
+      throw new Error("dateOfBirth must be in MM/DD/YYYY format");
+    }
+  }
+}
+
+// =============================================================================
+// ACCESS CONTROL HELPER
+// =============================================================================
+
+/** Check row-level access: admin can access any client, team members only their own. */
+async function requireClientAccess(
+  ctx: QueryCtx | MutationCtx,
+  user: Doc<"users">,
+  clientId: string
+): Promise<Doc<"clients">> {
+  const client = await ctx.db.get(clientId as Id<"clients">);
+  if (!client) throw new Error("Client not found");
+  if (user.role !== "admin" && client.userId !== user._id) {
+    throw new Error("Access denied");
+  }
+  return client;
+}
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -29,8 +78,11 @@ function getAlertLevel(daysActive: number): "none" | "warning" | "danger" {
 // =============================================================================
 
 /**
- * Get all clients for the current user with dispute counts
- * Row-level security: Team members only see their own clients
+ * Get all clients for the current user with dispute counts.
+ * Row-level security: Team members only see their own clients.
+ *
+ * TODO(perf): N+1 query pattern — fetches disputes per client.
+ * Acceptable at < 100 clients per user. Consider denormalized counts if volume grows.
  */
 export const getClientsWithDisputes = query({
   handler: async (ctx) => {
@@ -47,7 +99,7 @@ export const getClientsWithDisputes = query({
         .collect();
     }
 
-    // Get all dispute items for these clients
+    // Fetch dispute counts per client (parallel indexed queries)
     const clientsWithDisputes = await Promise.all(
       clients.map(async (client) => {
         const disputes = await ctx.db
@@ -82,7 +134,6 @@ export const getClient = query({
     const client = await ctx.db.get(args.clientId);
     if (!client) return null;
 
-    // Row-level security for non-admins
     if (currentUser.role !== "admin" && client.userId !== currentUser._id) {
       throw new Error("Access denied");
     }
@@ -98,14 +149,7 @@ export const getDisputeItemsByClient = query({
   args: { clientId: v.id("clients") },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
-
-    const client = await ctx.db.get(args.clientId);
-    if (!client) throw new Error("Client not found");
-
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && client.userId !== currentUser._id) {
-      throw new Error("Access denied");
-    }
+    await requireClientAccess(ctx, currentUser, args.clientId);
 
     const disputes = await ctx.db
       .query("disputeItems")
@@ -118,7 +162,10 @@ export const getDisputeItemsByClient = query({
 });
 
 /**
- * Get summary stats for the dashboard
+ * Get summary stats for the dashboard.
+ *
+ * TODO(perf): N+1 query pattern — fetches disputes per client.
+ * Same scaling note as getClientsWithDisputes.
  */
 export const getClientStats = query({
   handler: async (ctx) => {
@@ -136,6 +183,8 @@ export const getClientStats = query({
 
     let pendingItems = 0;
     let approachingPurge = 0;
+    let totalRemoved = 0;
+    let totalResolved = 0;
 
     for (const client of clients) {
       const disputes = await ctx.db
@@ -144,6 +193,8 @@ export const getClientStats = query({
         .collect();
 
       pendingItems += disputes.filter((d) => d.status === "pending").length;
+      totalRemoved += disputes.filter((d) => d.status === "removed").length;
+      totalResolved += disputes.filter((d) => d.status !== "pending").length;
       
       const daysActive = calculateDaysActive(client.createdAt);
       if (getAlertLevel(daysActive) !== "none") {
@@ -151,10 +202,15 @@ export const getClientStats = query({
       }
     }
 
+    const portfolioSuccessRate = totalResolved > 0
+      ? Math.round((totalRemoved / totalResolved) * 100)
+      : null;
+
     return {
       totalClients: clients.length,
       pendingItems,
       approachingPurge,
+      portfolioSuccessRate,
     };
   },
 });
@@ -178,9 +234,11 @@ export const createClient = mutation({
     state: v.string(),
     zipCode: v.string(),
     last4SSN: v.string(),
+    dateOfBirth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
+    validateClientFields(args);
 
     const clientId = await ctx.db.insert("clients", {
       ...args,
@@ -221,18 +279,14 @@ export const updateClient = mutation({
     state: v.string(),
     zipCode: v.string(),
     last4SSN: v.string(),
+    dateOfBirth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
+    validateClientFields(args);
     const { id, ...updates } = args;
 
-    const existingClient = await ctx.db.get(id);
-    if (!existingClient) throw new Error("Client not found");
-
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && existingClient.userId !== currentUser._id) {
-      throw new Error("Access denied");
-    }
+    const existingClient = await requireClientAccess(ctx, currentUser, id);
 
     await ctx.db.patch(id, updates);
 
@@ -261,14 +315,7 @@ export const deleteClient = mutation({
   args: { clientId: v.id("clients") },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
-
-    const existingClient = await ctx.db.get(args.clientId);
-    if (!existingClient) throw new Error("Client not found");
-
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && existingClient.userId !== currentUser._id) {
-      throw new Error("Access denied");
-    }
+    const existingClient = await requireClientAccess(ctx, currentUser, args.clientId);
 
     // Get dispute items for audit log
     const disputes = await ctx.db
@@ -329,13 +376,14 @@ export const createDisputeItem = mutation({
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
 
-    const client = await ctx.db.get(args.clientId);
-    if (!client) throw new Error("Client not found");
-
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && client.userId !== currentUser._id) {
-      throw new Error("Access denied");
+    if (!(DISPUTE_TYPES as readonly string[]).includes(args.disputeType)) {
+      throw new Error("Invalid dispute type");
     }
+    if (!(VALID_CRA_TARGETS as readonly string[]).includes(args.craTarget)) {
+      throw new Error("Invalid CRA target");
+    }
+
+    await requireClientAccess(ctx, currentUser, args.clientId);
 
     const now = Date.now();
     const disputeId = await ctx.db.insert("disputeItems", {
@@ -347,6 +395,169 @@ export const createDisputeItem = mutation({
     });
 
     return await ctx.db.get(disputeId);
+  },
+});
+
+/**
+ * Batch create dispute items (replaces N individual mutations with 1)
+ * Validates fields against the dispute type's schema group.
+ */
+export const createDisputeItems = mutation({
+  args: {
+    clientId: v.id("clients"),
+    items: v.array(v.object({
+      disputeType: v.string(),
+      craTarget: v.string(),
+      creditorName: v.string(),
+      accountNumber: v.optional(v.string()),
+      inquiryDate: v.optional(v.string()),
+      dateOpened: v.optional(v.string()),
+      balance: v.optional(v.string()),
+      monthsLate: v.optional(v.string()),
+      monthLate: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, "team");
+    await requireClientAccess(ctx, currentUser, args.clientId);
+
+    if (args.items.length === 0) throw new Error("No items to create");
+    if (args.items.length > 100) throw new Error("Cannot create more than 100 items at once");
+
+    for (const item of args.items) {
+      if (!(DISPUTE_TYPES as readonly string[]).includes(item.disputeType)) {
+        throw new Error(`Invalid dispute type: ${item.disputeType}`);
+      }
+      if (!(VALID_CRA_TARGETS as readonly string[]).includes(item.craTarget)) {
+        throw new Error(`Invalid CRA target: ${item.craTarget}`);
+      }
+
+      // Validate required fields based on schema group
+      const schema = getSchemaGroupForType(item.disputeType);
+      if (schema) {
+        for (const field of schema.fields) {
+          if (field.required) {
+            const value = item[field.key as keyof typeof item];
+            if (!value || (typeof value === 'string' && !value.trim())) {
+              throw new Error(`${field.label} is required for ${item.disputeType} disputes`);
+            }
+          }
+        }
+
+        // Validate monthsLate values if present
+        if (item.monthsLate && !['30', '60', '90', '120'].includes(item.monthsLate)) {
+          throw new Error("monthsLate must be 30, 60, 90, or 120");
+        }
+      }
+    }
+
+    const now = Date.now();
+    const validFieldKeys = new Set(['creditorName', 'accountNumber', 'inquiryDate', 'dateOpened', 'balance', 'monthsLate', 'monthLate']);
+    const results: { id: string; craTarget: string }[] = [];
+
+    for (const item of args.items) {
+      const allowedKeys = getValidFieldKeys(item.disputeType);
+
+      // Build the document with only schema-valid fields
+      const doc: Record<string, unknown> = {
+        clientId: args.clientId,
+        disputeType: item.disputeType,
+        craTarget: item.craTarget,
+        currentRound: 1,
+        status: "pending" as const,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      for (const key of allowedKeys) {
+        if (validFieldKeys.has(key)) {
+          const val = item[key as keyof typeof item];
+          if (val && typeof val === 'string' && val.trim()) {
+            doc[key] = val.trim();
+          }
+        }
+      }
+
+      const id = await ctx.db.insert("disputeItems", doc as never);
+      results.push({ id, craTarget: item.craTarget });
+    }
+
+    return results;
+  },
+});
+
+/**
+ * Update dispute item fields (schema-group validated)
+ */
+export const updateDisputeItem = mutation({
+  args: {
+    disputeId: v.id("disputeItems"),
+    creditorName: v.optional(v.string()),
+    accountNumber: v.optional(v.string()),
+    inquiryDate: v.optional(v.string()),
+    dateOpened: v.optional(v.string()),
+    balance: v.optional(v.string()),
+    monthsLate: v.optional(v.string()),
+    monthLate: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, "team");
+
+    const dispute = await ctx.db.get(args.disputeId);
+    if (!dispute) throw new Error("Dispute item not found");
+
+    await requireClientAccess(ctx, currentUser, dispute.clientId);
+
+    const allowedKeys = getValidFieldKeys(dispute.disputeType);
+    const updates: Record<string, unknown> = { updatedAt: Date.now() };
+    const editableFields = ['creditorName', 'accountNumber', 'inquiryDate', 'dateOpened', 'balance', 'monthsLate', 'monthLate'] as const;
+
+    for (const key of editableFields) {
+      if (args[key] !== undefined && allowedKeys.includes(key)) {
+        updates[key] = args[key]?.trim() || undefined;
+      }
+    }
+
+    if (args.monthsLate !== undefined && args.monthsLate && !['30', '60', '90', '120'].includes(args.monthsLate)) {
+      throw new Error("monthsLate must be 30, 60, 90, or 120");
+    }
+
+    await ctx.db.patch(args.disputeId, updates);
+    return await ctx.db.get(args.disputeId);
+  },
+});
+
+/**
+ * Bulk update dispute item statuses
+ */
+export const bulkUpdateDisputeStatus = mutation({
+  args: {
+    disputeIds: v.array(v.id("disputeItems")),
+    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
+  },
+  handler: async (ctx, args) => {
+    const currentUser = await requireAuth(ctx, "team");
+
+    if (args.disputeIds.length === 0) throw new Error("No items selected");
+
+    // Validate ALL items and access before applying any changes
+    const disputes = [];
+    for (const disputeId of args.disputeIds) {
+      const dispute = await ctx.db.get(disputeId);
+      if (!dispute) throw new Error(`Dispute item ${disputeId} not found`);
+      await requireClientAccess(ctx, currentUser, dispute.clientId);
+      disputes.push({ disputeId, dispute });
+    }
+
+    // Apply changes only after all validation passes
+    const now = Date.now();
+    let updatedCount = 0;
+    for (const { disputeId } of disputes) {
+      await ctx.db.patch(disputeId, { status: args.status, updatedAt: now });
+      updatedCount++;
+    }
+
+    return updatedCount;
   },
 });
 
@@ -364,13 +575,7 @@ export const updateDisputeStatus = mutation({
     const dispute = await ctx.db.get(args.disputeId);
     if (!dispute) throw new Error("Dispute item not found");
 
-    const client = await ctx.db.get(dispute.clientId);
-    if (!client) throw new Error("Client not found");
-
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && client.userId !== currentUser._id) {
-      throw new Error("Access denied");
-    }
+    await requireClientAccess(ctx, currentUser, dispute.clientId);
 
     await ctx.db.patch(args.disputeId, {
       status: args.status,
@@ -392,12 +597,10 @@ export const incrementDisputeRound = mutation({
     const dispute = await ctx.db.get(args.disputeId);
     if (!dispute) throw new Error("Dispute item not found");
 
-    const client = await ctx.db.get(dispute.clientId);
-    if (!client) throw new Error("Client not found");
+    await requireClientAccess(ctx, currentUser, dispute.clientId);
 
-    // Row-level security for non-admins
-    if (currentUser.role !== "admin" && client.userId !== currentUser._id) {
-      throw new Error("Access denied");
+    if (dispute.currentRound >= 10) {
+      throw new Error("Maximum round limit (10) reached");
     }
 
     await ctx.db.patch(args.disputeId, {

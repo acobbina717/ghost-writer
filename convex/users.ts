@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAuth, createAuditLog } from "./lib/auth";
+import { VALID_SOCIAL_PLATFORM_VALUES } from "./constants";
 
 // =============================================================================
 // QUERIES
@@ -24,23 +25,25 @@ export const getCurrentUser = query({
 });
 
 /**
- * Get user by ID
+ * Get user by ID (authenticated, team+ only)
  */
 export const getUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
+    await requireAuth(ctx, "team");
     return await ctx.db.get(args.userId);
   },
 });
 
 /**
- * Get count of pending users (for nav badge)
+ * Get count of pending users (admin only, for nav badge)
  */
 export const getPendingUserCount = query({
   handler: async (ctx) => {
+    await requireAuth(ctx, "admin");
     const pending = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("role"), "pending"))
+      .withIndex("by_role", (q) => q.eq("role", "pending"))
       .collect();
     return pending.length;
   },
@@ -55,7 +58,7 @@ export const getPendingUsers = query({
 
     const pendingUsers = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("role"), "pending"))
+      .withIndex("by_role", (q) => q.eq("role", "pending"))
       .order("desc")
       .collect();
 
@@ -72,7 +75,7 @@ export const getTeamMembers = query({
 
     const teamMembers = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("role"), "team"))
+      .withIndex("by_role", (q) => q.eq("role", "team"))
       .order("desc")
       .collect();
 
@@ -82,11 +85,18 @@ export const getTeamMembers = query({
 
 /**
  * Get user by Clerk ID (for server-side checks like onboarding)
- * This query does not require auth - used before user record exists
+ * Requires authentication — caller can only look up their own Clerk ID
  */
 export const getUserByClerkId = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    if (identity.subject !== args.clerkId) {
+      throw new Error("Access denied");
+    }
+
     return await ctx.db
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
@@ -109,6 +119,13 @@ export const completeOnboarding = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
+
+    if (!VALID_SOCIAL_PLATFORM_VALUES.includes(args.socialPlatform as any)) {
+      throw new Error("Invalid social platform");
+    }
+    if (!args.socialHandle.trim() || args.socialHandle.length > 100) {
+      throw new Error("Invalid social handle");
+    }
 
     // Check if user already exists
     const existingUser = await ctx.db
@@ -171,7 +188,7 @@ export const completeOnboarding = mutation({
       metadata: {
         socialPlatform: args.socialPlatform,
         socialHandle: args.socialHandle,
-        autoPromotedToAdmin: isLeadAdmin,
+        autoPromotedToAdmin: !!isLeadAdmin,
       },
       createdAt: Date.now(),
     });

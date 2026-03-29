@@ -37,7 +37,7 @@ export async function requireAuth(
 // AUDIT LOG HELPER
 // =============================================================================
 
-type AuditAction = 
+type AuditAction =
   | "user_onboarding_complete"
   | "user_approved"
   | "user_denied"
@@ -47,16 +47,17 @@ type AuditAction =
   | "client_deleted"
   | "letter_created"
   | "letter_updated"
-  | "letter_deleted";
+  | "letter_deleted"
+  | "letter_generated";
 
-type EntityType = "user" | "client" | "letter" | "disputeItem";
+type EntityType = "user" | "client" | "letter" | "disputeItem" | "generation_log";
 
 interface AuditLogParams {
   action: AuditAction;
   user: Doc<"users">;
   entityType: EntityType;
-  entityId: Id<"users"> | Id<"clients"> | Id<"letters"> | Id<"disputeItems">;
-  metadata?: Record<string, unknown>;
+  entityId: Id<"users"> | Id<"clients"> | Id<"letters"> | Id<"disputeItems"> | Id<"generationLogs">;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 /**

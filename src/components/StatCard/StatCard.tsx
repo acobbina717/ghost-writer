@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, Group, Text, ThemeIcon } from '@mantine/core';
+import type { KeyboardEvent } from 'react';
 
 export interface StatCardProps {
   /** Label displayed above the value */
@@ -32,21 +33,35 @@ export function StatCard({
   onClick,
   active,
 }: StatCardProps) {
+  const isInteractive = !!onClick;
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <Card
       withBorder
       padding="lg"
+      className={isInteractive ? 'card-interactive' : undefined}
+      role={isInteractive ? 'button' : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-pressed={isInteractive ? active : undefined}
       style={{
-        cursor: onClick ? 'pointer' : undefined,
-        outline: active ? '2px solid var(--mantine-color-red-6)' : undefined,
+        cursor: isInteractive ? 'pointer' : undefined,
+        outline: active ? '2px solid var(--mantine-primary-color-filled)' : undefined,
       }}
       onClick={onClick}
+      onKeyDown={isInteractive ? handleKeyDown : undefined}
     >
       <Group justify="space-between" mb="xs">
-        <Text size="sm" c="dimmed" tt="uppercase" fw={500}>
+        <Text size="sm" c="dimmed" fw={500}>
           {label}
         </Text>
-        <ThemeIcon variant="light" size="lg" radius="xs" color={color}>
+        <ThemeIcon variant="light" size="lg" radius="sm" color={color}>
           {icon}
         </ThemeIcon>
       </Group>
@@ -59,4 +74,3 @@ export function StatCard({
     </Card>
   );
 }
-

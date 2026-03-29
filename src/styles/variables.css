@@ -14,6 +14,9 @@
 
   --color-red-primary: #E21C1C;
   --color-red-hover: #C11414;
+
+  --color-action-primary: #4B6BFB;
+  --color-action-hover: #4338CA;
 }
 
 /* Light Mode */
@@ -74,6 +77,6 @@
 
 .focus-ring:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--color-red-primary);
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--color-action-primary);
 }
 

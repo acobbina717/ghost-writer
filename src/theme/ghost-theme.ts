@@ -1,7 +1,8 @@
 import { createTheme, MantineColorsTuple, rem } from '@mantine/core';
-import { mantineRed, mantineDark, neutral, fonts } from './colors';
+import { mantineRed, mantineAction, mantineDark, neutral, fonts } from './colors';
 
 const otfRed = mantineRed as unknown as MantineColorsTuple;
+const actionScale = mantineAction as unknown as MantineColorsTuple;
 const darkScale = mantineDark as unknown as MantineColorsTuple;
 const neutralScale = neutral as unknown as MantineColorsTuple;
 
@@ -12,12 +13,11 @@ export const ghostTheme = createTheme({
   
   headings: {
     fontFamily: fonts.sans,
-    fontWeight: '900',
     sizes: {
-      h1: { fontSize: rem(32), lineHeight: '1.2' },
-      h2: { fontSize: rem(24), lineHeight: '1.25' },
-      h3: { fontSize: rem(20), lineHeight: '1.3' },
-      h4: { fontSize: rem(16), lineHeight: '1.4' },
+      h1: { fontSize: rem(32), lineHeight: '1.2', fontWeight: '900' },
+      h2: { fontSize: rem(24), lineHeight: '1.25', fontWeight: '700' },
+      h3: { fontSize: rem(20), lineHeight: '1.3', fontWeight: '600' },
+      h4: { fontSize: rem(16), lineHeight: '1.4', fontWeight: '500' },
     },
   },
 
@@ -47,14 +47,15 @@ export const ghostTheme = createTheme({
     lg: rem(12),
     xl: rem(16),
   },
-  defaultRadius: 'xs',
+  defaultRadius: 'sm',
 
   // Colors - now imported from single source of truth
-  primaryColor: 'red',
-  primaryShade: { light: 6, dark: 6 },
+  primaryColor: 'action',
+  primaryShade: { light: 6, dark: 5 },
   
   colors: {
     red: otfRed,
+    action: actionScale,
     dark: darkScale,
     gray: neutralScale,
   },
@@ -72,13 +73,11 @@ export const ghostTheme = createTheme({
   components: {
     Button: {
       defaultProps: {
-        radius: 'xs',
+        radius: 'sm',
       },
       styles: {
         root: {
-          fontWeight: 700,
-          letterSpacing: '0.05em',
-          textTransform: 'uppercase' as const,
+          fontWeight: 600,
         },
       },
     },
@@ -86,14 +85,12 @@ export const ghostTheme = createTheme({
     TextInput: {
       styles: {
         label: {
-          fontSize: rem(11),
+          fontSize: rem(12),
           fontWeight: 500,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase' as const,
           marginBottom: rem(4),
         },
         input: {
-          borderRadius: rem(2),
+          borderRadius: rem(4),
         },
       },
     },
@@ -101,14 +98,12 @@ export const ghostTheme = createTheme({
     Textarea: {
       styles: {
         label: {
-          fontSize: rem(11),
+          fontSize: rem(12),
           fontWeight: 500,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase' as const,
           marginBottom: rem(4),
         },
         input: {
-          borderRadius: rem(2),
+          borderRadius: rem(4),
         },
       },
     },
@@ -116,10 +111,8 @@ export const ghostTheme = createTheme({
     Select: {
       styles: {
         label: {
-          fontSize: rem(11),
+          fontSize: rem(12),
           fontWeight: 500,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase' as const,
           marginBottom: rem(4),
         },
       },

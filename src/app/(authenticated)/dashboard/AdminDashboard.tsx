@@ -6,6 +6,10 @@ import {
   SimpleGrid,
   Stack,
   Group,
+  Table,
+  Badge,
+  Paper,
+  ScrollArea,
 } from '@mantine/core';
 import {
   IconFileText,
@@ -24,6 +28,22 @@ import { StatCard } from '@/components/StatCard';
 // TYPES
 // =============================================================================
 
+interface DisputeTypePerf {
+  disputeType: string;
+  total: number;
+  removed: number;
+  resolved: number;
+  rate: number | null;
+}
+
+interface RoundPerf {
+  round: number;
+  total: number;
+  removed: number;
+  resolved: number;
+  rate: number | null;
+}
+
 interface AdminDashboardProps {
   username: string;
   letters: LetterAnalytics[];
@@ -33,13 +53,22 @@ interface AdminDashboardProps {
     avgSuccessRate: number | null;
     teamMemberCount: number;
   };
+  disputeTypePerformance: DisputeTypePerf[];
+  roundPerformance: RoundPerf[];
 }
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-export function AdminDashboard({ username, letters, stats }: AdminDashboardProps) {
+function getRateColor(rate: number | null): string {
+  if (rate === null) return 'gray';
+  if (rate >= 70) return 'green';
+  if (rate >= 40) return 'yellow';
+  return 'red';
+}
+
+export function AdminDashboard({ username, letters, stats, disputeTypePerformance, roundPerformance }: AdminDashboardProps) {
   return (
     <Stack gap="xl">
       {/* Header */}
@@ -48,7 +77,7 @@ export function AdminDashboard({ username, letters, stats }: AdminDashboardProps
           Welcome back, {username}
         </Title>
         <Text c="dimmed">
-          Manage your letter library and monitor team performance.
+          Ghost is ready. Manage templates and monitor the team.
         </Text>
       </div>
 
@@ -99,7 +128,7 @@ export function AdminDashboard({ username, letters, stats }: AdminDashboardProps
         <EmptyState
           icon={<IconFileText size={48} />}
           title="No Letters Yet"
-          description="Create your first dispute letter template to start tracking analytics."
+          description="Ghost needs templates to work with. Create your first letter to get started."
           action={{
             label: 'Create Letter',
             href: '/admin/letters/new',
@@ -119,6 +148,71 @@ export function AdminDashboard({ username, letters, stats }: AdminDashboardProps
             </LinkButton>
           </Group>
           <LetterAnalyticsTable letters={letters} />
+        </Stack>
+      )}
+
+      {/* Dispute Type Performance (I5) */}
+      {disputeTypePerformance.length > 0 && (
+        <Stack gap="md">
+          <Title order={3}>Dispute Type Performance</Title>
+          <Paper withBorder radius="sm">
+            <ScrollArea type="auto">
+              <Table horizontalSpacing="md" verticalSpacing="sm" style={{ minWidth: 400 }}>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Dispute Type</Table.Th>
+                    <Table.Th>Items</Table.Th>
+                    <Table.Th>Removal Rate</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {disputeTypePerformance.map((row) => (
+                    <Table.Tr key={row.disputeType}>
+                      <Table.Td>
+                        <Text size="sm" fw={500}>{row.disputeType}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{row.total}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {row.rate !== null ? (
+                          <Badge variant="light" color={getRateColor(row.rate)} size="sm">
+                            {row.rate}%
+                          </Badge>
+                        ) : (
+                          <Text size="xs" c="dimmed" fs="italic">Waiting on outcomes</Text>
+                        )}
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </ScrollArea>
+          </Paper>
+        </Stack>
+      )}
+
+      {/* Round Performance (I6) */}
+      {roundPerformance.length > 0 && (
+        <Stack gap="md">
+          <Title order={3}>Round Performance</Title>
+          <Paper withBorder radius="sm" p="md">
+            <Group gap="xl" wrap="wrap">
+              {roundPerformance.map((row) => (
+                <Stack key={row.round} gap={4} align="center" style={{ minWidth: 80 }}>
+                  <Text size="xs" c="dimmed">Round {row.round}</Text>
+                  <Text size="lg" fw={700}>
+                    {row.rate !== null ? `${row.rate}%` : '—'}
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    {row.resolved > 0
+                      ? `${row.removed}/${row.resolved} removed`
+                      : `${row.total} items`}
+                  </Text>
+                </Stack>
+              ))}
+            </Group>
+          </Paper>
         </Stack>
       )}
     </Stack>

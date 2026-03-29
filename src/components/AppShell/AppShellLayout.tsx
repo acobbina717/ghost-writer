@@ -2,7 +2,7 @@
 
 import { AppShell, Burger, Group, Title, Text, Avatar, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconChevronDown } from '@tabler/icons-react';
+import { IconChevronDown, IconGhostFilled } from '@tabler/icons-react';
 import { useUser, useClerk } from '@clerk/nextjs';
 import { NavLinks } from './NavLinks';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle';
@@ -37,9 +37,12 @@ export function AppShellLayout({ children, userRole }: AppShellLayoutProps) {
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Title order={3} style={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
-              Ghost-Writer
-            </Title>
+            <Group gap={8}>
+              <IconGhostFilled size={24} style={{ color: 'var(--mantine-color-red-6)' }} />
+              <Title order={3} style={{ fontWeight: 900, letterSpacing: '-0.02em' }}>
+                Ghost-Writer
+              </Title>
+            </Group>
           </Group>
 
           <Group gap="md">
@@ -79,7 +82,7 @@ export function AppShellLayout({ children, userRole }: AppShellLayoutProps) {
       </AppShell.Header>
 
       <AppShell.Navbar>
-        <NavLinks userRole={userRole} />
+        <NavLinks userRole={userRole} opened={opened} toggleNavbar={toggle} />
       </AppShell.Navbar>
 
       <AppShell.Main style={{ backgroundColor: 'var(--bg-base)' }}>

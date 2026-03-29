@@ -8,6 +8,7 @@ import {
   Stack,
   Group,
   Button,
+  SegmentedControl,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -15,6 +16,7 @@ import {
   IconClock,
   IconAlertTriangle,
   IconUserPlus,
+  IconChartBar,
 } from '@tabler/icons-react';
 import type { ClientWithDisputes } from '@/lib/convex-types';
 import { ClientsTable } from './ClientsTable';
@@ -34,6 +36,7 @@ interface TeamDashboardProps {
     totalClients: number;
     pendingItems: number;
     approachingPurge: number;
+    portfolioSuccessRate: number | null;
   };
 }
 
@@ -45,10 +48,6 @@ export function TeamDashboard({ username, clients, stats }: TeamDashboardProps) 
   const [filter, setFilter] = useState<'all' | 'pending'>('all');
   const [addModalOpened, { open: openAddModal, close: closeAddModal }] = useDisclosure(false);
 
-  const handlePendingClick = () => {
-    setFilter((prev) => (prev === 'pending' ? 'all' : 'pending'));
-  };
-
   return (
     <>
       <Stack gap="xl">
@@ -58,12 +57,12 @@ export function TeamDashboard({ username, clients, stats }: TeamDashboardProps) 
             Welcome back, {username}
           </Title>
           <Text c="dimmed">
-            Generate dispute letters and track your clients.
+            Ghost is ready. Pick up where you left off.
           </Text>
         </div>
 
         {/* Stat Cards */}
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: PURGE_ENABLED ? 3 : 2 }} spacing="lg">
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: PURGE_ENABLED ? 4 : 3 }} spacing="lg">
           <StatCard
             label="Total Clients"
             value={stats.totalClients}
@@ -74,11 +73,25 @@ export function TeamDashboard({ username, clients, stats }: TeamDashboardProps) 
           <StatCard
             label="Pending Items"
             value={stats.pendingItems}
-            subtitle={filter === 'pending' ? 'Click to show all' : 'Click to filter'}
+            subtitle="Awaiting resolution"
             icon={<IconClock size={20} />}
             color="yellow"
-            onClick={handlePendingClick}
-            active={filter === 'pending'}
+          />
+
+          <StatCard
+            label="Portfolio Success Rate"
+            value={stats.portfolioSuccessRate !== null ? `${stats.portfolioSuccessRate}%` : '—'}
+            subtitle="Items removed across all clients"
+            icon={<IconChartBar size={20} />}
+            color={
+              stats.portfolioSuccessRate === null
+                ? 'gray'
+                : stats.portfolioSuccessRate >= 70
+                ? 'green'
+                : stats.portfolioSuccessRate >= 40
+                ? 'yellow'
+                : 'gray'
+            }
           />
 
           {PURGE_ENABLED && (
@@ -97,7 +110,7 @@ export function TeamDashboard({ username, clients, stats }: TeamDashboardProps) 
           <EmptyState
             icon={<IconUsers size={48} />}
             title="No Clients Yet"
-            description="Add your first client to start generating dispute letters."
+            description="Ghost is standing by. Add your first client to get started."
             action={{
               label: 'Add Client',
               onClick: openAddModal,
@@ -107,15 +120,17 @@ export function TeamDashboard({ username, clients, stats }: TeamDashboardProps) 
         ) : (
           <Stack gap="md">
             <Group justify="space-between" align="center">
-              <Title order={3}>
-                {filter === 'pending' ? 'Clients with Pending Items' : 'All Clients'}
-              </Title>
+              <Title order={3}>Clients</Title>
               <Group gap="sm">
-                {filter === 'pending' && (
-                  <Button variant="subtle" size="xs" onClick={() => setFilter('all')}>
-                    Show All
-                  </Button>
-                )}
+                <SegmentedControl
+                  size="xs"
+                  value={filter}
+                  onChange={(value) => setFilter(value as 'all' | 'pending')}
+                  data={[
+                    { label: 'All', value: 'all' },
+                    { label: `Pending (${stats.pendingItems})`, value: 'pending' },
+                  ]}
+                />
                 <Button
                   leftSection={<IconUserPlus size={16} />}
                   onClick={openAddModal}

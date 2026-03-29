@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { useAuth } from '@clerk/nextjs';
 import { api } from '../../../convex/_generated/api';
+import { Center, Loader } from '@mantine/core';
 import { AppShellLayout } from '@/components/AppShell';
-import { FullPageLoader } from '@/components/FullPageLoader';
 
 export default function AuthenticatedLayout({
   children,
@@ -30,12 +30,12 @@ export default function AuthenticatedLayout({
 
   // Loading state - wait for both Clerk auth AND Convex query
   if (!isAuthLoaded || user === undefined) {
-    return <FullPageLoader withBackground={false} />;
+    return <Center h="100vh"><Loader size="lg" /></Center>;
   }
 
   // Don't render children if user is not authorized
   if (!user || user.role === 'pending') {
-    return <FullPageLoader withBackground={false} />;
+    return <Center h="100vh"><Loader size="lg" /></Center>;
   }
 
   return (

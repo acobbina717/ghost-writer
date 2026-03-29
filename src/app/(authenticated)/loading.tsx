@@ -1,5 +1,5 @@
-import { FullPageLoader } from '@/components/FullPageLoader';
+import { PageSpinner } from '@/components/PageSpinner';
 
 export default function AuthenticatedLoading() {
-  return <FullPageLoader withBackground={false} />;
+  return <PageSpinner />;
 }

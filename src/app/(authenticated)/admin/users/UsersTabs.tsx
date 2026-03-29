@@ -29,7 +29,7 @@ export function UsersTabs({ pendingUsers, teamMembers }: UsersTabsProps) {
           <EmptyState
             icon={<IconUserCheck size={48} />}
             title="No Pending Users"
-            description="No users are awaiting approval. New signups will appear here for verification."
+            description="All clear. Ghost will surface new signups here for verification."
           />
         ) : (
           <PendingUsersTable users={pendingUsers} />
@@ -41,7 +41,7 @@ export function UsersTabs({ pendingUsers, teamMembers }: UsersTabsProps) {
           <EmptyState
             icon={<IconUsers size={48} />}
             title="No Team Members"
-            description="No team members yet. Approve pending users to add them to your team."
+            description="No team members yet. Approve pending users to build your team."
           />
         ) : (
           <TeamMembersTable users={teamMembers} />

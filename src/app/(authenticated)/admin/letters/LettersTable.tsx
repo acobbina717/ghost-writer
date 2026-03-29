@@ -53,16 +53,13 @@ export function LettersTable({ letters }: LettersTableProps) {
             <Table.Tr>
               <Table.Th>Title</Table.Th>
               <Table.Th>Applicable CRAs</Table.Th>
-              <Table.Th>Custom Fields</Table.Th>
+              <Table.Th>Dispute Types</Table.Th>
               <Table.Th>Last Updated</Table.Th>
               <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {letters.map((letter) => {
-              const formSchemaArray = letter.formSchema as Array<{ type: string; label: string; tagId: string }> | null;
-              const fieldCount = formSchemaArray?.length || 0;
-
               return (
                 <Table.Tr key={letter._id}>
                   <Table.Td>
@@ -84,7 +81,7 @@ export function LettersTable({ letters }: LettersTableProps) {
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm" c="dimmed">
-                      {fieldCount === 0 ? 'None' : `${fieldCount} field${fieldCount > 1 ? 's' : ''}`}
+                      {letter.disputeTypes?.join(', ') || 'None'}
                     </Text>
                   </Table.Td>
                   <Table.Td>

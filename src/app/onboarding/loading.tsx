@@ -1,5 +1,5 @@
-import { FullPageLoader } from '@/components/FullPageLoader';
+import { PageSpinner } from '@/components/PageSpinner';
 
 export default function OnboardingLoading() {
-  return <FullPageLoader />;
+  return <PageSpinner />;
 }

@@ -1,46 +1,29 @@
 /**
  * Convex Type Definitions
- * 
- * These types mirror the Convex schema and are used across the app.
- * They'll be replaced by generated types from `convex/_generated/dataModel`
- * once you run `npx convex dev`.
+ *
+ * Base document types are derived from the Convex-generated data model.
+ * Extended types (with computed fields) are defined here.
  */
 
-// User types
-export type UserRole = 'admin' | 'team' | 'pending';
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 
-export interface ConvexUser {
-  _id: string;
-  _creationTime: number;
-  clerkId: string;
-  username: string;
-  email: string;
-  role: UserRole;
-  socialPlatform: string;
-  socialHandle: string;
-  createdAt: number;
-}
+// Re-export generated document types
+export type ConvexUser = Doc<"users">;
+export type ConvexClient = Doc<"clients">;
+export type ConvexDisputeItem = Doc<"disputeItems">;
+export type ConvexLetter = Doc<"letters">;
 
-// Client types
-export type AlertLevel = 'none' | 'warning' | 'danger';
+// Re-export Id type for convenience
+export type { Id };
 
-export interface ConvexClient {
-  _id: string;
-  _creationTime: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address1: string;
-  address2?: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  last4SSN: string;
-  userId: string;
-  createdAt: number;
-}
+// Derived union types from schema
+export type UserRole = ConvexUser["role"];
+export type DisputeStatus = ConvexDisputeItem["status"];
 
+// Alert level for client PII purge warnings
+export type AlertLevel = "none" | "warning" | "danger";
+
+// Client with computed dispute counts (returned by getClientsWithDisputes)
 export interface ClientWithDisputes extends ConvexClient {
   daysActive: number;
   totalDisputes: number;
@@ -48,58 +31,30 @@ export interface ClientWithDisputes extends ConvexClient {
   alertLevel: AlertLevel;
 }
 
-// Dispute types
-export type DisputeStatus = 'pending' | 'removed' | 'verified';
-
-export interface ConvexDisputeItem {
-  _id: string;
-  _creationTime: number;
-  clientId: string;
-  disputeType: string;
-  creditorName?: string;
-  accountNumber?: string;
-  craTarget: string;
-  currentRound: number;
-  status: DisputeStatus;
-  createdAt: number;
-  updatedAt: number;
+// Per-CRA success rate breakdown
+export interface CraSuccessStats {
+  removed: number;
+  resolved: number;
+  rate: number | null;
 }
 
-// Letter types
-export interface ConvexLetter {
-  _id: string;
-  _creationTime: number;
-  title: string;
-  content: string;
-  applicableCRAs: string[];
-  formSchema?: unknown;
-  createdAt: number;
-  updatedAt: number;
-}
-
+// Letter analytics (returned by getLetterAnalytics)
 export interface LetterAnalytics {
-  id: string;
+  id: Id<"letters">;
   title: string;
   totalDownloads: number;
   uniqueUsers: number;
   successRate: number | null;
+  perCraStats: Record<string, CraSuccessStats>;
   lastUsed: number | null;
 }
 
-// Form schema field type
-export interface FormSchemaField {
-  type: 'text' | 'date' | 'textarea' | 'select' | 'checkbox';
-  label: string;
-  tagId: string;
-  placeholder?: string;
-  options?: string[];
-}
-
-// Stats types
+// Stats types (returned by query handlers)
 export interface ClientStats {
   totalClients: number;
   pendingItems: number;
   approachingPurge: number;
+  portfolioSuccessRate: number | null;
 }
 
 export interface LetterStats {
@@ -107,4 +62,3 @@ export interface LetterStats {
   totalDownloadsThisMonth: number;
   avgSuccessRate: number | null;
 }
-

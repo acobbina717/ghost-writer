@@ -17,7 +17,7 @@ export default function HomePage() {
   if (!mounted) {
     return (
       <Center h="100vh" bg="var(--bg-base)">
-        <Loader color="red" size="lg" />
+        <Loader size="lg" />
       </Center>
     );
   }
@@ -41,7 +41,7 @@ function HomePageContent() {
   if (!isLoaded) {
     return (
       <Center h="100vh" bg="var(--bg-base)">
-        <Loader color="red" size="lg" />
+        <Loader size="lg" />
       </Center>
     );
   }
@@ -51,7 +51,7 @@ function HomePageContent() {
     return (
       <Center h="100vh" bg="var(--bg-base)">
         <Stack align="center" gap="md">
-          <Loader color="red" size="lg" />
+          <Loader size="lg" />
           <Text c="dimmed" size="sm">Redirecting...</Text>
         </Stack>
       </Center>
