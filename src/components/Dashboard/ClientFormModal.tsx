@@ -17,8 +17,9 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { IconCheck } from "@tabler/icons-react";
 import { useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import type { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "../../../convex/_generated/api";
+import { isValidEmail, isValidPhone, isValidZip, isValidSSN } from "../../../convex/lib/validations";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { getStateSelectOptions } from "@/lib/usStates";
 import { PURGE_ENABLED } from "@/lib/constants";
 import { FW } from "@/theme/ghost-theme";
@@ -52,30 +53,19 @@ interface ClientFormModalProps {
 // =============================================================================
 
 function validatePhone(value: string): string | null {
-  const digits = value.replace(/\D/g, "");
-  if (digits.length < 10) return "Phone number must have at least 10 digits";
-  return null;
+  return isValidPhone(value) ? null : "Invalid phone number format (e.g. +1 555-123-4567)";
 }
 
 function validateZipCode(value: string): string | null {
-  if (!/^\d{5}$/.test(value)) {
-    return "ZIP code must be exactly 5 digits";
-  }
-  return null;
+  return isValidZip(value) ? null : "ZIP code must be exactly 5 digits";
 }
 
 function validateSSN(value: string): string | null {
-  if (!/^\d{4}$/.test(value)) {
-    return "SSN must be 4 digits";
-  }
-  return null;
+  return isValidSSN(value) ? null : "SSN must be 4 digits";
 }
 
 function validateEmail(value: string): string | null {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    return "Invalid email address";
-  }
-  return null;
+  return isValidEmail(value) ? null : "Invalid email address";
 }
 
 function validateDOB(value: string | null): string | null {

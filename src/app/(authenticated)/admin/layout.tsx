@@ -17,12 +17,14 @@ export default function AdminLayout({
   const user = useQuery(api.users.getCurrentUser);
 
   useEffect(() => {
-    if (isAuthLoaded && user && user.role !== 'admin') {
-      router.push('/dashboard');
+    if (!isAuthLoaded || user === undefined) return;
+    if (!user || user.role !== 'admin') {
+      router.replace('/dashboard');
     }
   }, [isAuthLoaded, user, router]);
 
-  if (!isAuthLoaded || user === undefined || (user && user.role !== 'admin')) {
+  // Show loader while auth loads OR while redirect is in-flight (non-admin)
+  if (!isAuthLoaded || user === undefined || !user || user.role !== 'admin') {
     return <Center h="50vh"><Loader size="lg" /></Center>;
   }
 

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAuth } from "./lib/auth";
+import { isValidEmail, isValidPhone, isValidSSN, isValidZip, isValidDOB } from "./lib/validations";
 import { DISPUTE_TYPES, VALID_CRA_TARGETS, VALID_US_STATES, PURGE_WARNING_DAYS, PURGE_DANGER_DAYS, getSchemaGroupForType, getValidFieldKeys } from "./constants";
 import { Doc, Id } from "./_generated/dataModel";
 
@@ -17,26 +18,13 @@ function validateClientFields(args: {
   last4SSN: string;
   dateOfBirth?: string;
 }) {
-  if (!/^\d{4}$/.test(args.last4SSN)) {
-    throw new Error("last4SSN must be exactly 4 digits");
-  }
-  if (!/^\d{5}$/.test(args.zipCode)) {
-    throw new Error("zipCode must be exactly 5 digits");
-  }
-  if (!(VALID_US_STATES as readonly string[]).includes(args.state)) {
-    throw new Error("Invalid state code");
-  }
-  // Stricter email validation: user@domain.tld, min 2-char TLD, no consecutive dots
-  if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$/.test(args.email)) {
-    throw new Error("Invalid email format");
-  }
-  if (!/^\+?[\d\s()-]{7,20}$/.test(args.phone)) {
-    throw new Error("Invalid phone number format");
-  }
+  if (!isValidSSN(args.last4SSN)) throw new Error("last4SSN must be exactly 4 digits");
+  if (!isValidZip(args.zipCode)) throw new Error("zipCode must be exactly 5 digits");
+  if (!(VALID_US_STATES as readonly string[]).includes(args.state)) throw new Error("Invalid state code");
+  if (!isValidEmail(args.email)) throw new Error("Invalid email format");
+  if (!isValidPhone(args.phone)) throw new Error("Invalid phone number format");
   if (args.dateOfBirth !== undefined && args.dateOfBirth !== '') {
-    if (!/^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/.test(args.dateOfBirth)) {
-      throw new Error("dateOfBirth must be in MM/DD/YYYY format");
-    }
+    if (!isValidDOB(args.dateOfBirth)) throw new Error("dateOfBirth must be in MM/DD/YYYY format");
   }
 }
 

@@ -50,12 +50,15 @@ function useBreadcrumbs() {
 
     if (label) {
       const isLast = i === segments.length - 1;
-      crumbs.push({ label, href: isLast ? undefined : path });
+      const isLinkable = label !== "Admin"; // Fix: Admin is a category, not a page
+      crumbs.push({ label, href: (isLast || !isLinkable) ? undefined : path });
     } else {
       // Dynamic segment like [id] — label it contextually
       const prev = segments[i - 1];
       if (prev === "clients") {
         crumbs.push({ label: "Client Details" });
+      } else if (prev === "letters") {
+        crumbs.push({ label: "Letter Details" });
       } else {
         crumbs.push({ label: seg });
       }
