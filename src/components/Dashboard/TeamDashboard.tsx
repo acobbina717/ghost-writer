@@ -19,7 +19,7 @@ import {
   IconUserPlus,
   IconChartBar,
 } from '@tabler/icons-react';
-import type { ClientWithDisputes } from '@/lib/convex-types';
+import type { ClientWithDisputes, ClientStats } from '@/lib/convex-types';
 import { ClientsTable } from './ClientsTable';
 import { ClientFormModal } from './ClientFormModal';
 import { EmptyState } from '@/components/EmptyState';
@@ -35,12 +35,7 @@ type UrgencyTier = 'all' | 'needs-intake' | 'ready-round-2' | 'drafts' | 'waitin
 interface TeamDashboardProps {
   username: string;
   clients: ClientWithDisputes[];
-  stats: {
-    totalClients: number;
-    pendingItems: number;
-    approachingPurge: number;
-    portfolioSuccessRate: number | null;
-  };
+  stats: ClientStats;
   draftClientIds: string[];
 }
 

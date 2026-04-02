@@ -26,7 +26,7 @@ import type { ConvexClient } from '@/lib/convex-types';
 import { formatAddress } from '@/lib/formatAddress';
 import { ClientFormModal } from '../../../../components/Dashboard/ClientFormModal';
 import { DeleteClientModal } from '../../../../components/Dashboard/DeleteClientModal';
-import { PURGE_ENABLED } from '@/lib/constants';
+import { PURGE_ENABLED, PURGE_WARNING_DAYS, PURGE_DANGER_DAYS, PURGE_LIMIT_DAYS } from '@/lib/constants';
 
 // =============================================================================
 // TYPES
@@ -52,8 +52,8 @@ interface ClientInfoCardProps {
 // =============================================================================
 
 function getAlertLevel(daysActive: number): 'none' | 'warning' | 'danger' {
-  if (daysActive >= 85) return 'danger';
-  if (daysActive >= 80) return 'warning';
+  if (daysActive >= PURGE_DANGER_DAYS) return 'danger';
+  if (daysActive >= PURGE_WARNING_DAYS) return 'warning';
   return 'none';
 }
 
@@ -66,7 +66,7 @@ export function ClientInfoCard({ client, daysActive, totalDisputes, disputeStats
   const [deleteOpened, { open: openDelete, close: closeDelete }] = useDisclosure(false);
 
   const alertLevel = getAlertLevel(daysActive);
-  const daysRemaining = 91 - daysActive;
+  const daysRemaining = PURGE_LIMIT_DAYS - daysActive;
 
   return (
     <>
