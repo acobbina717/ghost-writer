@@ -493,7 +493,17 @@ export function DisputeGenerateModal({
         disputeItems: validItems.map(toHydrationItem),
       };
 
-      const html = hydrateTemplate(selectedLetter.content, hydrationData);
+      let html: string;
+      try {
+        html = hydrateTemplate(selectedLetter.content, hydrationData);
+      } catch (err) {
+        notifications.show({
+          title: 'Missing Required Fields',
+          message: err instanceof Error ? err.message : 'Could not generate letter — required fields are missing.',
+          color: 'red',
+        });
+        return;
+      }
 
       // Generate PDF
       let result;

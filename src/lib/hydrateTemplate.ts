@@ -1,4 +1,5 @@
 import { formatAddress } from './formatAddress';
+import { getSchemaGroupForType } from '../../convex/constants';
 
 function escapeHtml(str: string): string {
   return str
@@ -64,6 +65,47 @@ export const CLIENT_INFO_FIELD_OPTIONS = [
   { value: 'email', label: 'Email Address' },
   { value: 'phone', label: 'Phone Number' },
 ] as const;
+
+// =============================================================================
+// VALIDATION
+// =============================================================================
+
+const REQUIRED_CLIENT_FIELDS: (keyof HydrationData)[] = [
+  'firstName', 'lastName', 'address1', 'city', 'state', 'zipCode', 'last4SSN',
+];
+
+/**
+ * Validate hydration data before rendering.
+ * Throws a descriptive error if any required field is missing so the caller
+ * can surface it to the user instead of silently generating a blank PDF.
+ */
+function validateHydrationData(data: HydrationData): void {
+  // Check required client-level fields
+  for (const field of REQUIRED_CLIENT_FIELDS) {
+    const value = data[field];
+    if (!value || (typeof value === 'string' && value.trim() === '')) {
+      throw new Error(`Missing required client field: ${field}`);
+    }
+  }
+
+  // Check required dispute item fields per schema group
+  if (data.disputeItems && data.disputeItems.length > 0) {
+    const schema = getSchemaGroupForType(data.disputeType);
+    if (schema) {
+      const requiredKeys = schema.fields.filter(f => f.required).map(f => f.key);
+      data.disputeItems.forEach((item, index) => {
+        for (const key of requiredKeys) {
+          const value = item[key as keyof DisputeItemData];
+          if (!value || (typeof value === 'string' && value.trim() === '')) {
+            throw new Error(
+              `Item ${index + 1} is missing required field "${key}" for dispute type "${data.disputeType}"`
+            );
+          }
+        }
+      });
+    }
+  }
+}
 
 // =============================================================================
 // PASS 1: Expand the repeating dispute block
@@ -138,6 +180,10 @@ function expandDisputeBlock(template: string, items?: DisputeItemData[]): string
  * Two-pass process: 1) expand dispute block, 2) replace global tags.
  */
 export function hydrateTemplate(template: string, data: HydrationData): string {
+  // Validate required fields before rendering — throws with a clear message
+  // rather than silently producing a blank PDF.
+  validateHydrationData(data);
+
   // Pass 1: Expand the repeating block
   let hydrated = expandDisputeBlock(template, data.disputeItems);
 
