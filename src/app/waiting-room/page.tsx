@@ -9,6 +9,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { getSocialIcon } from '@/lib/utils';
 import { ColorSchemeToggle } from '@/components/ColorSchemeToggle';
+import { FW } from '@/theme/ghost-theme';
 import { StatusPoller } from './StatusPoller';
 import { SignOutLink } from './SignOutLink';
 
@@ -84,25 +85,25 @@ export default function WaitingRoomPage() {
           <Card withBorder padding="md" radius="sm" w="100%">
             <Stack gap="xs">
               <Group justify="space-between">
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={FW.BODY}>
                   Username
                 </Text>
-                <Text size="sm" fw={500}>
+                <Text size="sm" fw={FW.BODY}>
                   {user.username}
                 </Text>
               </Group>
               
               <Group justify="space-between">
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={FW.BODY}>
                   Email
                 </Text>
-                <Text size="sm" fw={500}>
+                <Text size="sm" fw={FW.BODY}>
                   {user.email}
                 </Text>
               </Group>
 
               <Group justify="space-between">
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={FW.BODY}>
                   Verification Handle
                 </Text>
                 <Badge
@@ -114,7 +115,7 @@ export default function WaitingRoomPage() {
               </Group>
 
               <Group justify="space-between">
-                <Text size="xs" c="dimmed" tt="uppercase" fw={500}>
+                <Text size="xs" c="dimmed" tt="uppercase" fw={FW.BODY}>
                   Status
                 </Text>
                 <Badge color="yellow" variant="filled">

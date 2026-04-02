@@ -9,6 +9,7 @@ import {
   Table,
   Badge,
   Paper,
+  Progress,
   ScrollArea,
 } from '@mantine/core';
 import {
@@ -23,6 +24,9 @@ import { LetterAnalyticsTable } from './LetterAnalyticsTable';
 import { EmptyState } from '@/components/EmptyState';
 import { LinkButton } from '@/components/LinkButton';
 import { StatCard } from '@/components/StatCard';
+import { SuccessFunnel } from './SuccessFunnel';
+import { FW } from '@/theme/ghost-theme';
+import { getSuccessRateColor } from '@/lib/utils';
 
 // =============================================================================
 // TYPES
@@ -44,6 +48,17 @@ interface RoundPerf {
   rate: number | null;
 }
 
+interface VelocityTotal {
+  userId: string;
+  username: string;
+  totalGenerated: number;
+}
+
+interface TeamVelocityData {
+  daily: { date: string; userId: string; username: string; count: number }[];
+  totals: VelocityTotal[];
+}
+
 interface AdminDashboardProps {
   username: string;
   letters: LetterAnalytics[];
@@ -55,20 +70,18 @@ interface AdminDashboardProps {
   };
   disputeTypePerformance: DisputeTypePerf[];
   roundPerformance: RoundPerf[];
+  teamVelocity: TeamVelocityData;
 }
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
-function getRateColor(rate: number | null): string {
-  if (rate === null) return 'gray';
-  if (rate >= 70) return 'green';
-  if (rate >= 40) return 'yellow';
-  return 'red';
-}
 
-export function AdminDashboard({ username, letters, stats, disputeTypePerformance, roundPerformance }: AdminDashboardProps) {
+export function AdminDashboard({ username, letters, stats, disputeTypePerformance, roundPerformance, teamVelocity }: AdminDashboardProps) {
+  const maxGenerated = teamVelocity.totals.length > 0
+    ? Math.max(...teamVelocity.totals.map(t => t.totalGenerated))
+    : 0;
   return (
     <Stack gap="xl">
       {/* Header */}
@@ -95,7 +108,7 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
           value={stats.totalDownloadsThisMonth}
           subtitle="Letters generated"
           icon={<IconDownload size={20} />}
-          color="blue"
+          color="action"
         />
 
         <StatCard
@@ -112,6 +125,9 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
               ? 'yellow'
               : 'red'
           }
+          ring={stats.avgSuccessRate !== null ? {
+            value: stats.avgSuccessRate,
+          } : undefined}
         />
 
         <StatCard
@@ -119,7 +135,7 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
           value={stats.teamMemberCount}
           subtitle="Active users"
           icon={<IconUsers size={20} />}
-          color="grape"
+          color="action"
         />
       </SimpleGrid>
 
@@ -157,7 +173,7 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
           <Title order={3}>Dispute Type Performance</Title>
           <Paper withBorder radius="sm">
             <ScrollArea type="auto">
-              <Table horizontalSpacing="md" verticalSpacing="sm" style={{ minWidth: 400 }}>
+              <Table horizontalSpacing="md" verticalSpacing="xs" style={{ minWidth: 400 }}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Dispute Type</Table.Th>
@@ -169,18 +185,18 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
                   {disputeTypePerformance.map((row) => (
                     <Table.Tr key={row.disputeType}>
                       <Table.Td>
-                        <Text size="sm" fw={500}>{row.disputeType}</Text>
+                        <Text size="sm" fw={FW.BODY}>{row.disputeType}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Text size="sm">{row.total}</Text>
                       </Table.Td>
                       <Table.Td>
                         {row.rate !== null ? (
-                          <Badge variant="light" color={getRateColor(row.rate)} size="sm">
+                          <Badge variant="light" color={getSuccessRateColor(row.rate)} size="sm">
                             {row.rate}%
                           </Badge>
                         ) : (
-                          <Text size="xs" c="dimmed" fs="italic">Waiting on outcomes</Text>
+                          <Text size="xs" c="dimmed" fs="italic" fw={FW.BODY}>Waiting on outcomes</Text>
                         )}
                       </Table.Td>
                     </Table.Tr>
@@ -192,26 +208,45 @@ export function AdminDashboard({ username, letters, stats, disputeTypePerformanc
         </Stack>
       )}
 
-      {/* Round Performance (I6) */}
-      {roundPerformance.length > 0 && (
+      {/* Round Performance — Success Funnel (I6) */}
+      <SuccessFunnel roundPerformance={roundPerformance} />
+
+      {/* Team Velocity */}
+      {teamVelocity.totals.length > 0 && (
         <Stack gap="md">
-          <Title order={3}>Round Performance</Title>
-          <Paper withBorder radius="sm" p="md">
-            <Group gap="xl" wrap="wrap">
-              {roundPerformance.map((row) => (
-                <Stack key={row.round} gap={4} align="center" style={{ minWidth: 80 }}>
-                  <Text size="xs" c="dimmed">Round {row.round}</Text>
-                  <Text size="lg" fw={700}>
-                    {row.rate !== null ? `${row.rate}%` : '—'}
-                  </Text>
-                  <Text size="xs" c="dimmed">
-                    {row.resolved > 0
-                      ? `${row.removed}/${row.resolved} removed`
-                      : `${row.total} items`}
-                  </Text>
-                </Stack>
-              ))}
-            </Group>
+          <Title order={3}>Team Velocity (30 Days)</Title>
+          <Paper withBorder radius="sm">
+            <ScrollArea type="auto">
+              <Table horizontalSpacing="md" verticalSpacing="xs" style={{ minWidth: 400 }}>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Agent</Table.Th>
+                    <Table.Th>Letters Generated</Table.Th>
+                    <Table.Th style={{ minWidth: 200 }}>Volume</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {teamVelocity.totals.map((agent) => (
+                    <Table.Tr key={agent.userId}>
+                      <Table.Td>
+                        <Text size="sm" fw={FW.BODY}>{agent.username}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm">{agent.totalGenerated}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Progress
+                          value={maxGenerated > 0 ? (agent.totalGenerated / maxGenerated) * 100 : 0}
+                          size="lg"
+                          color="action"
+                          radius="sm"
+                        />
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </ScrollArea>
           </Paper>
         </Stack>
       )}

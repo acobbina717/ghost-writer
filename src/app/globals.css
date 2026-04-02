@@ -6,6 +6,7 @@
 @import '@mantine/dates/styles.css';
 @import '@mantine/notifications/styles.css';
 @import '@mantine/tiptap/styles.css';
+@import '@mantine/spotlight/styles.css';
 
 /* Import custom CSS variables */
 @import '../styles/variables.css';
@@ -161,5 +162,9 @@ pre,
 .card-interactive:active {
   transform: translateY(1px);
   box-shadow: none;
+}
+
+.search-trigger-hover:hover {
+  border-color: var(--border-strong) !important;
 }
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { Card, Group, Text, ThemeIcon } from '@mantine/core';
+import { Card, Group, RingProgress, Text, ThemeIcon } from '@mantine/core';
 import type { KeyboardEvent } from 'react';
+import { FW } from '@/theme/ghost-theme';
 
 export interface StatCardProps {
   /** Label displayed above the value */
@@ -14,6 +15,11 @@ export interface StatCardProps {
   icon: React.ReactNode;
   /** ThemeIcon color (defaults to primary) */
   color?: string;
+  /** Optional ring progress indicator (0-100 percentage) */
+  ring?: {
+    value: number;
+    color?: string;
+  };
   /** Optional click handler for interactive cards */
   onClick?: () => void;
   /** Whether the card is in an active/selected state */
@@ -30,6 +36,7 @@ export function StatCard({
   subtitle,
   icon,
   color,
+  ring,
   onClick,
   active,
 }: StatCardProps) {
@@ -45,7 +52,7 @@ export function StatCard({
   return (
     <Card
       withBorder
-      padding="lg"
+      padding="md"
       className={isInteractive ? 'card-interactive' : undefined}
       role={isInteractive ? 'button' : undefined}
       tabIndex={isInteractive ? 0 : undefined}
@@ -58,19 +65,36 @@ export function StatCard({
       onKeyDown={isInteractive ? handleKeyDown : undefined}
     >
       <Group justify="space-between" mb="xs">
-        <Text size="sm" c="dimmed" fw={500}>
+        <Text size="sm" c="dimmed" fw={FW.BODY}>
           {label}
         </Text>
         <ThemeIcon variant="light" size="lg" radius="sm" color={color}>
           {icon}
         </ThemeIcon>
       </Group>
-      <Text size="xl" fw={700}>
-        {value}
-      </Text>
-      <Text size="xs" c="dimmed" mt="xs">
-        {subtitle}
-      </Text>
+      <Group justify="space-between" align="flex-end" wrap="nowrap">
+        <div>
+          <Text size="xl" fw={FW.HEADING}>
+            {value}
+          </Text>
+          <Text size="xs" c="dimmed" mt="xs">
+            {subtitle}
+          </Text>
+        </div>
+        {ring && (
+          <RingProgress
+            size={60}
+            thickness={5}
+            roundCaps
+            sections={[{ value: ring.value, color: ring.color ?? color ?? 'blue' }]}
+            label={
+              <Text size="xs" ta="center" fw={FW.HEADING}>
+                {ring.value}%
+              </Text>
+            }
+          />
+        )}
+      </Group>
     </Card>
   );
 }

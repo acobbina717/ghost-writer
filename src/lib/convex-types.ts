@@ -29,6 +29,7 @@ export interface ClientWithDisputes extends ConvexClient {
   totalDisputes: number;
   pendingDisputes: number;
   alertLevel: AlertLevel;
+  lastDisputeUpdatedAt: number | null;
 }
 
 // Per-CRA success rate breakdown

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Stack, Group, Title, Text, Button, Center, Loader } from '@mantine/core';
+import { Stack, Group, Title, Button, Center, Loader } from '@mantine/core';
 import { IconPlus, IconFileAlert } from '@tabler/icons-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
@@ -11,7 +11,6 @@ import { ClientInfoCard } from './ClientInfoCard';
 import { ClientDisputesTable } from './ClientDisputesTable';
 import { DisputeGenerateModal, type PrePopulatedData } from './DisputeGenerateModal';
 import { EmptyState } from '@/components/EmptyState';
-import { PageBreadcrumbs } from '@/components/PageBreadcrumbs/PageBreadcrumbs';
 
 export default function ClientDetailPage() {
   const router = useRouter();
@@ -63,18 +62,14 @@ export default function ClientDetailPage() {
     const removed = disputeItems.filter(d => d.status === 'removed').length;
     const pending = disputeItems.filter(d => d.status === 'pending').length;
     const verified = disputeItems.filter(d => d.status === 'verified').length;
-    const resolved = removed + verified;
+    const noChange = disputeItems.filter(d => d.status === 'no_change').length;
+    const resolved = removed + verified + noChange;
     const removalRate = resolved > 0 ? Math.round((removed / resolved) * 100) : null;
-    return { total, removed, pending, verified, removalRate };
+    return { total, removed, pending, verified, noChange, removalRate };
   })();
 
   return (
     <Stack gap="xl">
-      <PageBreadcrumbs items={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: `${client.firstName} ${client.lastName}` },
-      ]} />
-
       {/* Client Info Card */}
       <ClientInfoCard
         client={client}

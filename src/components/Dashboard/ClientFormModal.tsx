@@ -21,6 +21,7 @@ import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 import { getStateSelectOptions } from "@/lib/usStates";
 import { PURGE_ENABLED } from "@/lib/constants";
+import { FW } from "@/theme/ghost-theme";
 
 // =============================================================================
 // TYPES
@@ -65,7 +66,7 @@ function validateZipCode(value: string): string | null {
 
 function validateSSN(value: string): string | null {
   if (!/^\d{4}$/.test(value)) {
-    return "Must be exactly 4 digits";
+    return "SSN must be 4 digits";
   }
   return null;
 }
@@ -265,7 +266,7 @@ export function ClientFormModal({
       opened={opened}
       onClose={handleClose}
       title={
-        <Text fw={700} size="lg">
+        <Text fw={FW.HEADING} size="lg">
           {mode === "edit" ? "Edit Client" : "Add Client"}
         </Text>
       }
@@ -286,7 +287,7 @@ export function ClientFormModal({
           <Stack gap="md">
             <Text {...SECTION_HEADER_PROPS}>Identity</Text>
 
-            <SimpleGrid cols={2}>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <TextInput
                 label="First Name"
                 placeholder="John"
@@ -304,7 +305,7 @@ export function ClientFormModal({
               />
             </SimpleGrid>
 
-            <SimpleGrid cols={2}>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <TextInput
                 label="Last 4 of SSN"
                 placeholder="1234"
@@ -377,7 +378,7 @@ export function ClientFormModal({
           <Stack gap="md">
             <Text {...SECTION_HEADER_PROPS}>Contact</Text>
 
-            <SimpleGrid cols={2}>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <TextInput
                 label="Email"
                 placeholder="john@example.com"

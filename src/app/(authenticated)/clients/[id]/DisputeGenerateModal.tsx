@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Modal, Grid, ScrollArea, Stack, Group, Text, Select, Chip, Switch,
-  Tabs, Card, TextInput, ActionIcon, Button, Paper, Badge, Radio,
-  SegmentedControl, Alert, Center, Loader,
+  Tabs, Card, TextInput, ActionIcon, Button, Paper,
+  SegmentedControl, Alert, Center, Tooltip,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import {
   IconPlus, IconTrash, IconFileText, IconCheck, IconCircle,
-  IconDownload, IconAlertCircle,
+  IconDownload, IconAlertCircle, IconEdit, IconEye, IconSunglasses,
 } from '@tabler/icons-react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
@@ -29,6 +29,8 @@ import {
 } from '@/lib/hydrateTemplate';
 import { wrapHtmlForPreview, downloadBase64Pdf } from '@/lib/pdf-utils';
 import type { ConvexLetter, ConvexDisputeItem } from '@/lib/convex-types';
+import { SmartTagsReference } from '@/components/SmartTagsReference';
+import { LAYOUT, Z, FW } from '@/theme/ghost-theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,31 +82,6 @@ function toHydrationItem(item: DisputeItem): DisputeItemData {
 }
 
 // ---------------------------------------------------------------------------
-// TemplateStats
-// ---------------------------------------------------------------------------
-
-function TemplateStats({
-  stats,
-  inline,
-}: {
-  stats: { successRate: number | null; usageCount: number } | undefined;
-  inline?: boolean;
-}) {
-  if (!stats) return null;
-  const text =
-    stats.successRate !== null
-      ? `${stats.successRate}% success rate · Used ${stats.usageCount} time${stats.usageCount !== 1 ? 's' : ''}`
-      : stats.usageCount > 0
-        ? `Used ${stats.usageCount} time${stats.usageCount !== 1 ? 's' : ''}`
-        : 'No outcome data yet';
-  return (
-    <Text size="xs" c="dimmed" component={inline ? 'span' : 'p'}>
-      {text}
-    </Text>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
 
@@ -130,6 +107,7 @@ export function DisputeGenerateModal({
   const createDisputeItems = useMutation(api.clients.createDisputeItems);
   const generatePdf = useAction(api.pdf.generatePdf);
   const logGeneration = useMutation(api.letters.logGeneration);
+  const markDownloaded = useMutation(api.letters.markGenerationDownloaded);
 
   // ---- Responsive ----
   const isDesktop = useMediaQuery('(min-width: 62em)') ?? true;
@@ -142,7 +120,6 @@ export function DisputeGenerateModal({
 
   // ---- Step 3: Template ----
   const [selectedLetter, setSelectedLetter] = useState<ConvexLetter | null>(null);
-  const [showAllTemplates, setShowAllTemplates] = useState(false);
 
   // ---- Step 4: Dispute Items ----
   const [perCraMode, setPerCraMode] = useState(false);
@@ -151,6 +128,7 @@ export function DisputeGenerateModal({
 
   // ---- Step 5: Preview ----
   const [previewCra, setPreviewCra] = useState('');
+  const [dimPreview, setDimPreview] = useState(false);
   const [downloadedCras, setDownloadedCras] = useState<Set<string>>(new Set());
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -165,6 +143,14 @@ export function DisputeGenerateModal({
 
   // ---- Type change confirmation ----
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
+
+  // ---- Focus Tracking for Gutter ----
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const isItemFocused = useMemo(() => {
+    if (!focusedField) return false;
+    const itemFields = ['creditorName', 'accountNumber', 'inquiryDate', 'dateOpened', 'balance', 'monthsLate', 'monthLate'];
+    return itemFields.includes(focusedField);
+  }, [focusedField]);
 
   // =========================================================================
   // DERIVED STATE
@@ -302,7 +288,6 @@ export function DisputeGenerateModal({
   useEffect(() => {
     if (mode === 'new') {
       setSelectedLetter(null);
-      setShowAllTemplates(false);
     }
   }, [disputeType, craTargetsKey, mode]);
 
@@ -331,7 +316,6 @@ export function DisputeGenerateModal({
     setCraItems({});
     setPerCraMode(false);
     setSelectedLetter(null);
-    setShowAllTemplates(false);
     setCreatedDisputes([]);
     setPendingTypeChange(null);
   };
@@ -419,7 +403,6 @@ export function DisputeGenerateModal({
     const letter = matchingTemplates.find(l => l._id === letterId);
     if (letter) {
       setSelectedLetter(letter as ConvexLetter);
-      setShowAllTemplates(false);
     }
   };
 
@@ -521,28 +504,39 @@ export function DisputeGenerateModal({
         return;
       }
 
+      // Create draft generation log before download
+      const disputeIds = craDisputeIds.length > 0
+        ? craDisputeIds
+        : disputes.map(d => d.id as Id<'disputeItems'>);
+
+      let genLog: { _id: Id<'generationLogs'> } | null = null;
+      try {
+        genLog = await logGeneration({
+          clientId,
+          letterId: selectedLetter._id as Id<'letters'>,
+          disputeItemIds: disputeIds,
+        });
+      } catch {
+        // Non-blocking — download can proceed without the log
+      }
+
       // Download
       downloadBase64Pdf(
         result.base64,
         `${disputeType}_${getCraLabel(cra)}_${client.firstName}_${client.lastName}.pdf`,
       );
 
-      // Log generation
-      try {
-        await logGeneration({
-          clientId,
-          letterId: selectedLetter._id as Id<'letters'>,
-          disputeItemIds:
-            craDisputeIds.length > 0
-              ? craDisputeIds
-              : disputes.map(d => d.id as Id<'disputeItems'>),
-        });
-      } catch {
-        notifications.show({
-          title: 'Warning',
-          message: 'PDF downloaded but generation log failed to save.',
-          color: 'yellow',
-        });
+      // Mark the log as downloaded
+      if (genLog?._id) {
+        try {
+          await markDownloaded({ logId: genLog._id });
+        } catch {
+          notifications.show({
+            title: 'Warning',
+            message: 'PDF downloaded but generation log failed to update.',
+            color: 'yellow',
+          });
+        }
       }
 
       setDownloadedCras(prev => new Set([...prev, cra]));
@@ -564,6 +558,18 @@ export function DisputeGenerateModal({
     }
   };
 
+  const handleTagClick = (fieldKey: string) => {
+    // Find the input by name or data-field-key
+    const selector = `[data-field-key="${fieldKey}"]`;
+    const element = document.querySelector(selector);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // If it's a focusable input, focus it
+      const input = element.querySelector('input, select, textarea') as HTMLElement;
+      if (input) input.focus();
+    }
+  };
+
   const handleClose = () => {
     setDisputeType('');
     setCraTargets([]);
@@ -571,7 +577,6 @@ export function DisputeGenerateModal({
     setSharedItems([defaultItem()]);
     setCraItems({});
     setSelectedLetter(null);
-    setShowAllTemplates(false);
     setPreviewCra('');
     setDownloadedCras(new Set());
     setCreatedDisputes([]);
@@ -600,31 +605,34 @@ export function DisputeGenerateModal({
           <Card key={item.id} withBorder padding="sm" radius="sm">
             <Group align="flex-start" gap="sm" wrap="wrap">
               {schema.fields.map(field => {
+                const commonProps = {
+                  label: field.label,
+                  placeholder: field.placeholder || `Enter ${field.label.toLowerCase()}`,
+                  required: field.required,
+                  readOnly: isReadOnly,
+                  style: { flex: 1, minWidth: 120 },
+                  'data-field-key': field.key,
+                  onFocus: () => setFocusedField(field.key),
+                  onBlur: () => setFocusedField(null),
+                };
+
                 if (field.type === 'select' && field.options) {
                   return (
                     <Select
                       key={field.key}
-                      label={field.label}
-                      placeholder={`Select ${field.label.toLowerCase()}`}
+                      {...commonProps}
                       data={field.options}
                       value={item[field.key] || null}
                       onChange={val => updateItem(cra, index, field.key, val || '')}
-                      readOnly={isReadOnly}
-                      style={{ flex: 1, minWidth: 120 }}
-                      required={field.required}
                     />
                   );
                 }
                 return (
                   <TextInput
                     key={field.key}
-                    label={field.label}
-                    placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                    {...commonProps}
                     value={item[field.key] || ''}
                     onChange={e => updateItem(cra, index, field.key, e.currentTarget.value)}
-                    readOnly={isReadOnly}
-                    style={{ flex: 1, minWidth: 120 }}
-                    required={field.required}
                   />
                 );
               })}
@@ -657,25 +665,11 @@ export function DisputeGenerateModal({
         )}
       </Stack>
     );
-  };
+    };
 
-  const renderCraBadges = (cras: string[]) => {
-    if (cras.length === 0) {
-      return <Badge size="xs" variant="light" color="gray">All CRAs</Badge>;
-    }
-    return cras.map(cra => {
-      const info = getCraInfo(cra);
-      return (
-        <Badge key={cra} size="xs" variant="light" color={info.color}>
-          {info.label}
-        </Badge>
-      );
-    });
-  };
-
-  // =========================================================================
-  // JSX
-  // =========================================================================
+    // =========================================================================
+    // VIEW RENDERERS
+    // =========================================================================
 
   return (
     <>
@@ -691,68 +685,40 @@ export function DisputeGenerateModal({
           body: { padding: 0 },
         }}
       >
-        {/* Mobile toggle */}
-        <Group hiddenFrom="md" px="md" pt="md">
-          <SegmentedControl
-            value={mobileView}
-            onChange={setMobileView}
-            data={[
-              { value: 'form', label: 'Form' },
-              { value: 'preview', label: 'Preview' },
-            ]}
-            fullWidth
-            style={{ flex: 1 }}
-          />
-        </Group>
-
-        <Grid gutter={0} styles={{ root: { height: 'calc(100vh - 60px)' } }}>
+        <Stack gap={0} h={`calc(100vh - ${LAYOUT.HEADER_LAYER1}px)`} bg="var(--bg-base)" style={{ paddingBottom: isDesktop ? undefined : LAYOUT.MOBILE_NAV_HEIGHT }}>
           {/* ============================================================= */}
-          {/* LEFT PANEL — Steps 1-4                                        */}
+          {/* COMPACT CONFIG HEADER — Steps 1-3                             */}
           {/* ============================================================= */}
-          <Grid.Col
-            span={{ base: 12, md: 5 }}
-            style={{
-              borderRight: '1px solid var(--border-default)',
-              display: showLeftPanel ? undefined : 'none',
-            }}
+          <Paper
+            withBorder
+            radius={0}
+            p="md"
+            style={{ borderTop: 0, borderLeft: 0, borderRight: 0, zIndex: Z.CONFIG_HEADER }}
           >
-            <ScrollArea h="100%" type="auto" p="lg">
-              <Stack gap="xl">
-                {mode === 'existing' && (
-                  <Alert variant="light" color="blue">
-                    <Text size="xs">
-                      Generating for existing dispute items. Edit items from the client profile.
-                    </Text>
-                  </Alert>
-                )}
+            <Group justify="space-between" align="flex-end" gap="md" wrap="wrap">
+              <Group gap="md" style={{ flex: 1 }} wrap="wrap">
+                {/* Step 1: Type */}
+                <Select
+                  label="1. DISPUTE TYPE"
+                  placeholder="Select type"
+                  data={availableDisputeTypes}
+                  value={disputeType || null}
+                  onChange={handleDisputeTypeChange}
+                  disabled={mode === 'existing'}
+                  style={{ flex: 1, minWidth: 150, maxWidth: 280 }}
+                  size="xs"
+                />
 
-                {/* ------ Step 1: Dispute Type ------ */}
-                <Stack gap="lg">
-                  <Text fw={600} size="sm" tt="uppercase" style={{ letterSpacing: '0.05em' }} c="dimmed">
-                    1. Dispute Type
-                  </Text>
-                  <Select
-                    label="Dispute Type"
-                    placeholder="Select dispute type"
-                    data={availableDisputeTypes}
-                    searchable
-                    required
-                    value={disputeType || null}
-                    onChange={handleDisputeTypeChange}
-                    disabled={mode === 'existing'}
-                  />
-                </Stack>
-
-                {/* ------ Step 2: CRAs ------ */}
+                {/* Step 2: CRAs */}
                 {showCras && applicableCras.length > 0 && (
-                  <Stack gap="lg">
-                    <Text fw={600} size="sm" tt="uppercase" style={{ letterSpacing: '0.05em' }} c="dimmed">
-                      2. Credit Reporting Agencies
+                  <Stack gap="xs">
+                    <Text fw={FW.LABEL} size="xs" tt="uppercase" c="dimmed" style={{ letterSpacing: 'var(--ls-wide)' }}>
+                      2. CREDIT BUREAUS
                     </Text>
                     <Chip.Group multiple value={craTargets} onChange={handleCraChange}>
-                      <Group gap="sm">
+                      <Group gap="xs">
                         {applicableCras.map(cra => (
-                          <Chip key={cra} value={cra} variant="outline" disabled={mode === 'existing'}>
+                          <Chip key={cra} value={cra} variant="outline" size="xs" disabled={mode === 'existing'}>
                             {getCraLabel(cra)}
                           </Chip>
                         ))}
@@ -761,260 +727,290 @@ export function DisputeGenerateModal({
                   </Stack>
                 )}
 
-                {/* ------ Step 3: Template ------ */}
+                {/* Step 3: Template */}
                 {showTemplate && (
-                  <Stack gap="sm">
-                    <Text fw={600} size="sm" tt="uppercase" style={{ letterSpacing: '0.05em' }} c="dimmed">
-                      {matchingTemplates.length > 1 && !selectedLetter
-                        ? `3. Template — ${matchingTemplates.length} available`
-                        : '3. Template'}
-                    </Text>
+                  <Select
+                    label="3. LETTER TEMPLATE"
+                    placeholder="Select template"
+                    data={matchingTemplates.map(t => ({ value: t._id, label: t.title }))}
+                    value={selectedLetter?._id || null}
+                    onChange={(val) => handleTemplateSelect(val || '')}
+                    style={{ flex: 1, minWidth: 180, maxWidth: 360 }}
+                    size="xs"
+                    error={matchingTemplates.length === 0 ? 'No templates found' : null}
+                  />
+                )}
+              </Group>
 
-                    {allLetters === undefined && (
-                      <Center p="xl"><Loader size="md" /></Center>
-                    )}
-
-                    {allLetters !== undefined && matchingTemplates.length === 0 && (
-                      <Alert color="yellow" variant="light" icon={<IconAlertCircle size={16} />}>
-                        No templates available for this dispute type and CRA combination.
-                      </Alert>
-                    )}
-
-                    {selectedLetter && !showAllTemplates && (
-                      <Paper withBorder p="md" radius="sm">
-                        <Group justify="space-between" align="flex-start">
-                          <Stack gap={4}>
-                            <Group gap="sm">
-                              <IconFileText size={18} />
-                              <Text fw={500} size="sm">{selectedLetter.title}</Text>
-                            </Group>
-                            <Group gap="xs">
-                              {renderCraBadges(selectedLetter.applicableCRAs)}
-                            </Group>
-                            <TemplateStats stats={templateStats?.[selectedLetter._id]} />
-                          </Stack>
-                          {matchingTemplates.length > 1 && (
-                            <Button variant="subtle" size="xs" onClick={() => setShowAllTemplates(true)}>
-                              View Others
-                            </Button>
-                          )}
-                        </Group>
-                      </Paper>
-                    )}
-
-                    {matchingTemplates.length > 1 && (!selectedLetter || showAllTemplates) && (
-                      <Radio.Group value={selectedLetter?._id ?? ''} onChange={handleTemplateSelect}>
-                        <Stack gap="sm">
-                          {matchingTemplates.map(letter => (
-                            <Radio
-                              key={letter._id}
-                              value={letter._id}
-                              label={
-                                <Group gap="xs">
-                                  <Text size="sm" fw={500}>{letter.title}</Text>
-                                  <TemplateStats stats={templateStats?.[letter._id]} inline />
-                                </Group>
-                              }
-                              description={
-                                <Group gap="xs" mt={2}>
-                                  {renderCraBadges(letter.applicableCRAs)}
-                                </Group>
-                              }
-                            />
-                          ))}
-                        </Stack>
-                      </Radio.Group>
-                    )}
+              {/* Status Stats */}
+              <Group gap="lg" visibleFrom="lg">
+                <Stack gap={0} align="flex-end">
+                  <Text size="xs" fw={FW.HEADING} c="dimmed">DISPUTE ITEMS</Text>
+                  <Text size="sm" fw={FW.HERO}>{validItemCount} / {maxItems || '∞'}</Text>
+                </Stack>
+                {selectedLetter && templateStats?.[selectedLetter._id] && (
+                  <Stack gap={0} align="flex-end">
+                    <Text size="xs" fw={FW.HEADING} c="dimmed">TEMPLATE SUCCESS</Text>
+                    <Text size="sm" fw={FW.HERO} c="green">{templateStats[selectedLetter._id].successRate}%</Text>
                   </Stack>
                 )}
+              </Group>
+            </Group>
+          </Paper>
 
-                {/* ------ Step 4: Dispute Items ------ */}
-                {showItems && schema && (
-                  <Stack gap="lg">
-                    <Group justify="space-between" align="center">
-                      <Text fw={600} size="sm" tt="uppercase" style={{ letterSpacing: '0.05em' }} c="dimmed">
-                        4. Dispute Items
-                      </Text>
-                      {selectedCRAs.length > 1 && mode === 'new' && (
-                        <Switch
-                          label="Customize per CRA"
-                          size="xs"
-                          checked={perCraMode}
-                          onChange={e => handlePerCraModeToggle(e.currentTarget.checked)}
-                        />
-                      )}
-                    </Group>
+          {/* ============================================================= */}
+          {/* WORKBENCH BODY — Steps 4-5                                    */}
+          {/* ============================================================= */}
+          <Grid gutter={0} style={{ flex: 1, minHeight: 0 }}>
+            {/* Gutter: Smart Tags Reference (Responsive) */}
+            
+            {/* 1. Wide screens: Full Sidebar */}
+            <Grid.Col
+              span={{ base: 0, xl: 1.5 }}
+              visibleFrom="xl"
+              style={{ borderRight: '1px solid var(--border-default)' }}
+              p="md"
+            >
+              <ScrollArea h="100%" type="auto">
+                <SmartTagsReference
+                  letterContent={selectedLetter?.content}
+                  unresolvedTags={unresolvedTags}
+                  onTagClick={handleTagClick}
+                  isItemFocused={isItemFocused}
+                  displayMode="full"
+                />
+              </ScrollArea>
+            </Grid.Col>
 
-                    {perCraMode ? (
-                      <Tabs defaultValue={selectedCRAs[0]}>
-                        <Tabs.List>
-                          {selectedCRAs.map(cra => (
-                            <Tabs.Tab key={cra} value={cra}>{getCraLabel(cra)}</Tabs.Tab>
-                          ))}
-                        </Tabs.List>
-                        {selectedCRAs.map(cra => (
-                          <Tabs.Panel key={cra} value={cra} pt="md">
-                            {renderItemList(cra)}
-                          </Tabs.Panel>
-                        ))}
-                      </Tabs>
-                    ) : (
-                      renderItemList('shared')
-                    )}
+            {/* 2. Medium screens: Icon-only column */}
+            <Grid.Col
+              span={{ base: 0, md: 0.8, xl: 0 }}
+              visibleFrom="md"
+              hiddenFrom="xl"
+              style={{ borderRight: '1px solid var(--border-default)' }}
+              p="xs"
+            >
+              <ScrollArea h="100%" type="auto">
+                <SmartTagsReference
+                  letterContent={selectedLetter?.content}
+                  unresolvedTags={unresolvedTags}
+                  onTagClick={handleTagClick}
+                  isItemFocused={isItemFocused}
+                  displayMode="iconOnly"
+                />
+              </ScrollArea>
+            </Grid.Col>
 
-                    {/* Item limit warning */}
-                    {itemsExceedLimit && maxItems && (
-                      <Alert color="yellow" variant="light" icon={<IconAlertCircle size={16} />}>
-                        <Text size="sm">
-                          This template supports up to {maxItems} items, but {validItemCount} are entered.
+            {/* LEFT: Item Editor */}
+            <Grid.Col
+              span={{ base: 12, md: 4.7, xl: 4.5 }}
+              style={{
+                borderRight: '1px solid var(--border-default)',
+                display: showLeftPanel ? undefined : 'none',
+              }}
+            >
+              <ScrollArea h="100%" type="auto" p="lg">
+                <Stack gap="xl">
+                  {mode === 'existing' && (
+                    <Alert variant="light" color="action">
+                      Generating for existing dispute items. Edit items from the client profile.
+                    </Alert>
+                  )}
+
+                  {showItems && schema ? (
+                    <Stack gap="lg">
+                      <Group justify="space-between" align="center">
+                        <Text fw={FW.HEADING} size="sm" tt="uppercase" style={{ letterSpacing: 'var(--ls-wide)' }} c="dimmed">
+                          4. DISPUTE ITEMS
                         </Text>
-                      </Alert>
+                        {selectedCRAs.length > 1 && mode === 'new' && (
+                          <Switch
+                            label="Customize per CRA"
+                            size="xs"
+                            checked={perCraMode}
+                            onChange={e => handlePerCraModeToggle(e.currentTarget.checked)}
+                          />
+                        )}
+                      </Group>
+
+                      {perCraMode ? (
+                        <Tabs defaultValue={selectedCRAs[0]}>
+                          <Tabs.List>
+                            {selectedCRAs.map(cra => (
+                              <Tabs.Tab key={cra} value={cra}>{getCraLabel(cra)}</Tabs.Tab>
+                            ))}
+                          </Tabs.List>
+                          {selectedCRAs.map(cra => (
+                            <Tabs.Panel key={cra} value={cra} pt="md">
+                              {renderItemList(cra)}
+                            </Tabs.Panel>
+                          ))}
+                        </Tabs>
+                      ) : (
+                        renderItemList('shared')
+                      )}
+
+                      {/* Item limit warning */}
+                      {itemsExceedLimit && maxItems && (
+                        <Alert color="yellow" variant="light" icon={<IconAlertCircle size={16} />}>
+                          <Text size="sm">
+                            This template supports up to {maxItems} items, but {validItemCount} are entered.
+                          </Text>
+                        </Alert>
+                      )}
+                    </Stack>
+                  ) : (
+                    <Center h={200}>
+                      <Stack align="center" gap="sm">
+                        <IconCircle size={40} color="var(--text-muted)" stroke={1} />
+                        <Text c="dimmed" size="sm" ta="center">
+                          Select a template above to <br /> start adding dispute items.
+                        </Text>
+                      </Stack>
+                    </Center>
+                  )}
+                </Stack>
+              </ScrollArea>
+            </Grid.Col>
+
+            {/* RIGHT: Live Preview */}
+            <Grid.Col
+              span={{ base: 12, md: 6.5, xl: 6 }}
+              style={{ display: showRightPanel ? undefined : 'none' }}
+              bg="var(--bg-inset)"
+            >
+              <Stack h="100%" p="lg" gap="md">
+                <Group justify="space-between" align="center">
+                  <Text fw={FW.HEADING} size="sm" tt="uppercase" style={{ letterSpacing: 'var(--ls-wide)' }} c="dimmed">
+                    5. LIVE PREVIEW
+                  </Text>
+
+                  <Group gap="sm">
+                    <Tooltip label="Eye Comfort" withArrow>
+                      <ActionIcon
+                        variant={dimPreview ? 'filled' : 'subtle'}
+                        color={dimPreview ? 'yellow.6' : 'gray'}
+                        size="sm"
+                        onClick={() => setDimPreview(prev => !prev)}
+                        aria-label="Toggle eye comfort mode"
+                      >
+                        <IconSunglasses size={16} />
+                      </ActionIcon>
+                    </Tooltip>
+                    {selectedCRAs.length > 1 && (
+                      <SegmentedControl
+                        value={previewCra}
+                        onChange={setPreviewCra}
+                        data={selectedCRAs.map(cra => ({
+                          value: cra,
+                          label: getCraLabel(cra),
+                        }))}
+                        size="xs"
+                      />
                     )}
-                  </Stack>
+                  </Group>
+                </Group>
+
+                {/* Unresolved tags warning */}
+                {unresolvedTags.length > 0 && canPreview && (
+                  <Alert icon={<IconAlertCircle size={16} />} color="yellow" variant="light" py="xs">
+                    <Text size="xs" fw={FW.HEADING}>Unresolved tags detected</Text>
+                    <Text size="xs">
+                      {unresolvedTags.map(tag => `{{${tag}}}`).join(', ')}
+                    </Text>
+                  </Alert>
+                )}
+
+                {/* Preview iframe */}
+                <Paper withBorder radius="sm" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }} shadow="sm">
+                  {canPreview ? (
+                    <iframe
+                      sandbox=""
+                      srcDoc={wrapHtmlForPreview(hydratedHtml)}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        backgroundColor: dimPreview ? 'var(--bg-inset)' : 'var(--bg-surface)',
+                        filter: dimPreview ? 'sepia(0.3) brightness(0.9)' : undefined,
+                        transition: `filter var(--duration-default) var(--ease-default), background-color var(--duration-default) var(--ease-default)`,
+                      }}
+
+                      title={`${getCraLabel(previewCra)} Letter Preview`}
+                    />
+                  ) : (
+                    <Center h="100%">
+                      <Stack align="center" gap="sm">
+                        <IconFileText size={48} color="var(--text-tertiary)" stroke={1} />
+                        <Text c="dimmed" size="sm">
+                          Letter preview will appear here.
+                        </Text>
+                      </Stack>
+                    </Center>
+                  )}
+                </Paper>
+
+                {/* Download controls */}
+                {canPreview && !itemsExceedLimit && (
+                  <Group justify="flex-end">
+                    {selectedCRAs.length > 1 && (
+                      <Button
+                        variant="subtle"
+                        leftSection={<IconDownload size={16} />}
+                        onClick={handleDownloadAll}
+                        loading={isGeneratingPdf}
+                        disabled={allDownloaded}
+                      >
+                        Download All ({remainingCount})
+                      </Button>
+                    )}
+                    <Button
+                      leftSection={
+                        downloadedCras.has(previewCra)
+                          ? <IconCheck size={16} />
+                          : <IconDownload size={16} />
+                      }
+                      onClick={() => handleDownloadPdf(previewCra)}
+                      loading={isGeneratingPdf}
+                      color={downloadedCras.has(previewCra) ? 'green' : undefined}
+                      size="md"
+                      px="xl"
+                    >
+                      {downloadedCras.has(previewCra) ? 'Downloaded' : `Download ${getCraLabel(previewCra)} PDF`}
+                    </Button>
+                  </Group>
                 )}
               </Stack>
-            </ScrollArea>
-          </Grid.Col>
+            </Grid.Col>
+          </Grid>
+        </Stack>
 
-          {/* ============================================================= */}
-          {/* RIGHT PANEL — Step 5: Live Preview + Downloads                */}
-          {/* ============================================================= */}
-          <Grid.Col
-            span={{ base: 12, md: 7 }}
-            style={{ display: showRightPanel ? undefined : 'none' }}
-          >
-            <Stack h="100%" p="lg" gap="md">
-              {/* CRA Tab Bar */}
-              {selectedCRAs.length > 0 && (
-                <SegmentedControl
-                  value={previewCra}
-                  onChange={setPreviewCra}
-                  data={selectedCRAs.map(cra => {
-                    const info = getCraInfo(cra);
-                    const downloaded = downloadedCras.has(cra);
-                    return {
-                      value: cra,
-                      label: (
-                        <Group gap={4}>
-                          {downloaded && <IconCheck size={12} color="var(--mantine-color-green-6)" />}
-                          <Text size="xs">{info.label}</Text>
-                        </Group>
-                      ),
-                    };
-                  })}
-                  size="sm"
-                />
-              )}
-
-              {/* Unresolved tags warning */}
-              {unresolvedTags.length > 0 && canPreview && (
-                <Alert icon={<IconAlertCircle size={16} />} color="yellow" variant="light">
-                  <Text size="sm" fw={500}>Unresolved tags detected</Text>
-                  <Text size="xs" mt="xs">
-                    The following tags were not replaced:{' '}
-                    {unresolvedTags.map(tag => `{{${tag}}}`).join(', ')}
-                  </Text>
-                </Alert>
-              )}
-
-              {/* Preview iframe */}
-              <Paper withBorder radius="sm" style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                {canPreview ? (
-                  <iframe
-                    sandbox=""
-                    srcDoc={wrapHtmlForPreview(hydratedHtml)}
-                    style={{ width: '100%', height: '100%', border: 'none', backgroundColor: 'white' }}
-                    title={`${getCraLabel(previewCra)} Letter Preview`}
-                  />
-                ) : (
-                  <Center h="100%">
-                    <Stack align="center" gap="sm">
-                      <IconFileText size={48} color="var(--text-tertiary)" stroke={1} />
-                      <Text c="dimmed" size="sm">
-                        Fill in the form to see the letter preview.
-                      </Text>
-                    </Stack>
-                  </Center>
-                )}
-              </Paper>
-
-              {/* Download controls */}
-              {canPreview && !itemsExceedLimit && (
-                <>
-                  {selectedCRAs.length === 1 ? (
-                    <Group justify="flex-end">
-                      <Button
-                        leftSection={
-                          downloadedCras.has(previewCra)
-                            ? <IconCheck size={16} />
-                            : <IconDownload size={16} />
-                        }
-                        onClick={() => handleDownloadPdf(previewCra)}
-                        loading={isGeneratingPdf}
-                        color={downloadedCras.has(previewCra) ? 'green' : undefined}
-                      >
-                        {downloadedCras.has(previewCra) ? 'Downloaded' : 'Download PDF'}
-                      </Button>
-                    </Group>
-                  ) : (
-                    <Paper withBorder p="md" radius="sm">
-                      <Stack gap="sm">
-                        {selectedCRAs.map(cra => {
-                          const info = getCraInfo(cra);
-                          const downloaded = downloadedCras.has(cra);
-                          return (
-                            <Group key={cra} justify="space-between">
-                              <Group gap="xs">
-                                {downloaded ? (
-                                  <IconCheck size={16} color="var(--mantine-color-green-6)" />
-                                ) : (
-                                  <IconCircle size={16} color="var(--text-tertiary)" />
-                                )}
-                                <Text size="sm">{info.label}</Text>
-                                <Text size="xs" c="dimmed">
-                                  {downloaded ? 'Downloaded' : 'Ready'}
-                                </Text>
-                              </Group>
-                              {!downloaded && (
-                                <Button
-                                  size="xs"
-                                  variant="light"
-                                  onClick={() => handleDownloadPdf(cra)}
-                                  loading={isGeneratingPdf}
-                                >
-                                  Download
-                                </Button>
-                              )}
-                            </Group>
-                          );
-                        })}
-
-                        {remainingCount > 0 && (
-                          <Button
-                            fullWidth
-                            leftSection={<IconDownload size={16} />}
-                            onClick={handleDownloadAll}
-                            loading={isGeneratingPdf}
-                          >
-                            Download Remaining ({remainingCount})
-                          </Button>
-                        )}
-
-                        {allDownloaded && client && (
-                          <Text size="sm" c="dimmed" ta="center">
-                            Ghost wrote {selectedCRAs.length} letter
-                            {selectedCRAs.length !== 1 ? 's' : ''} for {client.firstName}{' '}
-                            {client.lastName}.
-                          </Text>
-                        )}
-                      </Stack>
-                    </Paper>
-                  )}
-                </>
-              )}
-            </Stack>
-          </Grid.Col>
-        </Grid>
+        {/* Sticky bottom toggle for mobile */}
+        <Paper
+          hiddenFrom="md"
+          p="sm"
+          withBorder
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: Z.MOBILE_NAV,
+            borderLeft: 0,
+            borderRight: 0,
+            borderBottom: 0,
+          }}
+        >
+          <SegmentedControl
+            value={mobileView}
+            onChange={setMobileView}
+            data={[
+              { value: 'form', label: <Group gap={6} justify="center"><IconEdit size={16} /> Input Data</Group> },
+              { value: 'preview', label: <Group gap={6} justify="center"><IconEye size={16} /> Preview Letter</Group> },
+            ]}
+            fullWidth
+          />
+        </Paper>
       </Modal>
 
       {/* Type change confirmation modal */}

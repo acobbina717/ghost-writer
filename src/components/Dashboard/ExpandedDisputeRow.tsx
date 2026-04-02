@@ -5,6 +5,7 @@ import { IconCircle, IconExternalLink } from '@tabler/icons-react';
 import Link from 'next/link';
 import type { ConvexDisputeItem } from '@/lib/convex-types';
 import { getCraInfo, DISPUTE_STATUS_COLORS } from '@/lib/constants';
+import { FW } from '@/theme/ghost-theme';
 
 interface ExpandedDisputeRowProps {
   items: ConvexDisputeItem[];
@@ -61,7 +62,7 @@ export function ExpandedDisputeRow({ items, isLoading, clientId }: ExpandedDispu
             return (
               <Table.Tr key={item._id}>
                 <Table.Td>
-                  <Text size="sm" fw={500}>
+                  <Text size="sm" fw={FW.BODY}>
                     {item.disputeType}
                   </Text>
                 </Table.Td>

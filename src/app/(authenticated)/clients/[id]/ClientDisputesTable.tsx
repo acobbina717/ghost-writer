@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Table, Badge, Text, Group, ThemeIcon, Paper, Button, Select, ScrollArea, Modal, TextInput, Stack, Checkbox } from '@mantine/core';
 import { IconCircle, IconFileText, IconEdit, IconArrowUp } from '@tabler/icons-react';
 import type { ConvexDisputeItem } from '@/lib/convex-types';
-import { getCraInfo, DISPUTE_STATUS_COLORS } from '@/lib/constants';
+import { getCraInfo } from '@/lib/constants';
+import { FW } from '@/theme/ghost-theme';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import { notifications } from '@mantine/notifications';
@@ -45,7 +46,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
     }
   };
 
-  const handleBulkStatusChange = async (status: 'pending' | 'removed' | 'verified') => {
+  const handleBulkStatusChange = async (status: 'pending' | 'removed' | 'verified' | 'no_change') => {
     if (selectedIds.size === 0) return;
     try {
       await bulkUpdateStatus({
@@ -58,7 +59,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
         color: 'green',
       });
       setSelectedIds(new Set());
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update items',
@@ -79,7 +80,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
           : 'Ghost advanced to the next round.',
         color: 'blue',
       });
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to advance round',
@@ -109,7 +110,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
         color: 'green',
       });
       setEditingItem(null);
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update dispute item',
@@ -120,7 +121,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
     }
   };
 
-  const handleStatusChange = async (disputeId: string, newStatus: 'pending' | 'removed' | 'verified') => {
+  const handleStatusChange = async (disputeId: string, newStatus: 'pending' | 'removed' | 'verified' | 'no_change') => {
     try {
       await updateDisputeStatus({
         disputeId: disputeId as Id<'disputeItems'>,
@@ -131,7 +132,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
         message: `Dispute status changed to ${newStatus}`,
         color: 'green',
       });
-    } catch (error) {
+    } catch {
       notifications.show({
         title: 'Error',
         message: 'Failed to update dispute status',
@@ -145,7 +146,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
     <Paper withBorder radius="sm">
       {selectedIds.size > 0 && (
         <Group gap="sm" p="sm" style={{ borderBottom: '1px solid var(--border-default)' }}>
-          <Text size="sm" fw={500}>{selectedIds.size} selected</Text>
+          <Text size="sm" fw={FW.BODY}>{selectedIds.size} selected</Text>
           <Button size="xs" variant="light" color="yellow" onClick={() => handleBulkStatusChange('pending')}>
             Set Pending
           </Button>
@@ -155,13 +156,16 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
           <Button size="xs" variant="light" color="blue" onClick={() => handleBulkStatusChange('verified')}>
             Set Verified
           </Button>
+          <Button size="xs" variant="light" color="gray" onClick={() => handleBulkStatusChange('no_change')}>
+            Set No Change
+          </Button>
           <Button size="xs" variant="subtle" onClick={() => setSelectedIds(new Set())}>
             Clear
           </Button>
         </Group>
       )}
       <ScrollArea type="auto">
-      <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover style={{ minWidth: 700 }}>
+      <Table horizontalSpacing="md" verticalSpacing="xs" highlightOnHover style={{ minWidth: 700 }}>
         <Table.Thead>
           <Table.Tr>
             <Table.Th w={40}>
@@ -194,7 +198,7 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
                   />
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm" fw={500}>
+                  <Text size="sm" fw={FW.BODY}>
                     {item.disputeType}
                   </Text>
                 </Table.Td>
@@ -235,11 +239,12 @@ export function ClientDisputesTable({ items, onOpenGenerateModal }: ClientDisput
                   <Select
                     size="xs"
                     value={item.status}
-                    onChange={(value) => value && handleStatusChange(item._id, value as 'pending' | 'removed' | 'verified')}
+                    onChange={(value) => value && handleStatusChange(item._id, value as 'pending' | 'removed' | 'verified' | 'no_change')}
                     data={[
                       { value: 'pending', label: 'Pending' },
                       { value: 'removed', label: 'Removed' },
                       { value: 'verified', label: 'Verified' },
+                      { value: 'no_change', label: 'No Change' },
                     ]}
                     w={120}
                   />

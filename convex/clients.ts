@@ -109,12 +109,18 @@ export const getClientsWithDisputes = query({
 
         const daysActive = calculateDaysActive(client.createdAt);
 
+        // Most recent updatedAt across all dispute items (null if none)
+        const lastDisputeUpdatedAt = disputes.length > 0
+          ? Math.max(...disputes.map((d) => d.updatedAt))
+          : null;
+
         return {
           ...client,
           daysActive,
           totalDisputes: disputes.length,
           pendingDisputes: disputes.filter((d) => d.status === "pending").length,
           alertLevel: getAlertLevel(daysActive),
+          lastDisputeUpdatedAt,
         };
       })
     );
@@ -533,7 +539,7 @@ export const updateDisputeItem = mutation({
 export const bulkUpdateDisputeStatus = mutation({
   args: {
     disputeIds: v.array(v.id("disputeItems")),
-    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
+    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified"), v.literal("no_change")),
   },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");
@@ -567,7 +573,7 @@ export const bulkUpdateDisputeStatus = mutation({
 export const updateDisputeStatus = mutation({
   args: {
     disputeId: v.id("disputeItems"),
-    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
+    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified"), v.literal("no_change")),
   },
   handler: async (ctx, args) => {
     const currentUser = await requireAuth(ctx, "team");

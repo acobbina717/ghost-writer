@@ -1,6 +1,6 @@
 'use client';
 
-import { NavLink, Stack, Divider, Text, Badge } from '@mantine/core';
+import { Group, Anchor, Text } from '@mantine/core';
 import {
   IconDashboard,
   IconUsers,
@@ -14,11 +14,17 @@ import { api } from '../../../convex/_generated/api';
 
 interface NavLinksProps {
   userRole: 'admin' | 'team' | 'pending';
-  opened: boolean;
-  toggleNavbar: () => void;
 }
 
-export function NavLinks({ userRole, opened, toggleNavbar }: NavLinksProps) {
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  isActive: (pathname: string) => boolean;
+  pendingCount?: number;
+}
+
+export function NavLinks({ userRole }: NavLinksProps) {
   const pathname = usePathname();
   const isAdmin = userRole === 'admin';
 
@@ -28,73 +34,89 @@ export function NavLinks({ userRole, opened, toggleNavbar }: NavLinksProps) {
     isAdmin ? {} : "skip"
   );
 
+  const items: NavItem[] = [
+    {
+      label: 'Dashboard',
+      href: '/dashboard',
+      icon: <IconDashboard size={16} stroke={1.5} />,
+      isActive: (p) => p === '/dashboard',
+    },
+    {
+      label: 'Clients',
+      href: '/clients',
+      icon: <IconAddressBook size={16} stroke={1.5} />,
+      isActive: (p) => p.startsWith('/clients'),
+    },
+  ];
+
+  if (isAdmin) {
+    items.push(
+      {
+        label: 'Users',
+        href: '/admin/users',
+        icon: <IconUsers size={16} stroke={1.5} />,
+        isActive: (p) => p.startsWith('/admin/users'),
+        pendingCount: pendingCount && pendingCount > 0 ? pendingCount : undefined,
+      },
+      {
+        label: 'Letter Library',
+        href: '/admin/letters',
+        icon: <IconFileText size={16} stroke={1.5} />,
+        isActive: (p) => p.startsWith('/admin/letters'),
+      }
+    );
+  }
+
   return (
-    <Stack gap="xs" p="md">
-      {/* Main Navigation */}
-      <NavLink
-        component={Link}
-        href="/dashboard"
-        label="Dashboard"
-        leftSection={<IconDashboard size={18} stroke={1.5} />}
-        active={pathname === '/dashboard'}
-        style={{
-          borderRadius: 'var(--mantine-radius-sm)',
-        }}
-        onClick={opened ? toggleNavbar : undefined}
-      />
-
-      <NavLink
-        component={Link}
-        href="/clients"
-        label="Clients"
-        leftSection={<IconAddressBook size={18} stroke={1.5} />}
-        active={pathname.startsWith('/clients')}
-        style={{
-          borderRadius: 'var(--mantine-radius-sm)',
-        }}
-        onClick={opened ? toggleNavbar : undefined}
-      />
-
-      {/* Admin Section */}
-      {isAdmin && (
-        <>
-          <Divider my="xs" />
-          <Text size="xs" c="dimmed" fw={500} tt="uppercase" px="sm" mb={4}>
-            Admin
-          </Text>
-          
-          <NavLink
+    <Group gap="xs" h="100%">
+      {items.map((item) => {
+        const active = item.isActive(pathname);
+        return (
+          <Anchor
+            key={item.href}
             component={Link}
-            href="/admin/users"
-            label="User Management"
-            leftSection={<IconUsers size={18} stroke={1.5} />}
-            rightSection={
-              pendingCount && pendingCount > 0 && (
-                <Badge size="sm" variant="filled" circle>
-                  {pendingCount}
-                </Badge>
-              )
-            }
-            active={pathname.startsWith('/admin/users')}
+            href={item.href}
+            underline="never"
+            h="100%"
+            px="sm"
             style={{
-              borderRadius: 'var(--mantine-radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 'var(--mantine-font-size-sm)',
+              fontWeight: 500,
+              color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+              borderBottom: active
+                ? '2px solid var(--mantine-color-action-6)'
+                : '2px solid transparent',
+              transition: 'color 150ms ease, border-color 150ms ease',
             }}
-            onClick={opened ? toggleNavbar : undefined}
-          />
-          
-          <NavLink
-            component={Link}
-            href="/admin/letters"
-            label="Letter Library"
-            leftSection={<IconFileText size={18} stroke={1.5} />}
-            active={pathname.startsWith('/admin/letters')}
-            style={{
-              borderRadius: 'var(--mantine-radius-sm)',
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (!active) {
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }
             }}
-            onClick={opened ? toggleNavbar : undefined}
-          />
-        </>
-      )}
-    </Stack>
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (!active) {
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }
+            }}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+            {item.pendingCount != null && (
+              <Text
+                component="span"
+                size="sm"
+                c="dimmed"
+                fw={400}
+              >
+                ({item.pendingCount})
+              </Text>
+            )}
+          </Anchor>
+        );
+      })}
+    </Group>
   );
 }

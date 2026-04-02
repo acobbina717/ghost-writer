@@ -10,7 +10,10 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Don't render Clerk components until mounted (client-side)
@@ -84,7 +87,7 @@ function HomePageContent() {
           >
             Ghost-Writer
           </Title>
-          <Text c="dimmed" size="sm" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <Text c="dimmed" size="sm" style={{ letterSpacing: 'var(--ls-wider)', textTransform: 'uppercase' }}>
             Credit Repair Automation
           </Text>
         </Stack>

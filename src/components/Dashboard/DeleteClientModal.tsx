@@ -16,6 +16,7 @@ import { IconAlertTriangle, IconCheck, IconTrash } from '@tabler/icons-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import type { Id } from '../../../../convex/_generated/dataModel';
+import { FW } from '@/theme/ghost-theme';
 
 // =============================================================================
 // TYPES
@@ -87,7 +88,7 @@ export function DeleteClientModal({
           <ThemeIcon color="red" variant="light" size="sm">
             <IconTrash size={14} />
           </ThemeIcon>
-          <Text fw={700}>Delete Client</Text>
+          <Text fw={FW.HEADING}>Delete Client</Text>
         </Group>
       }
       size="md"
@@ -97,7 +98,7 @@ export function DeleteClientModal({
       <Stack gap="md">
         <Text>
           Are you sure you want to delete{' '}
-          <Text span fw={700}>
+          <Text span fw={FW.HEADING}>
             {client.firstName} {client.lastName}
           </Text>
           ?
@@ -115,7 +116,7 @@ export function DeleteClientModal({
               <li>All client information and contact details</li>
               {client.totalDisputes > 0 && (
                 <li>
-                  <Text span fw={500}>{client.totalDisputes}</Text> dispute item
+                  <Text span fw={FW.BODY}>{client.totalDisputes}</Text> dispute item
                   {client.totalDisputes !== 1 ? 's' : ''}
                 </li>
               )}

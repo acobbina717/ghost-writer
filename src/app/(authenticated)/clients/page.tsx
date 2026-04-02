@@ -5,8 +5,8 @@ import { api } from '../../../../convex/_generated/api';
 import { Center, Loader, Stack, Title, Text, Group, Button } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { IconUserPlus, IconUsers } from '@tabler/icons-react';
-import { ClientsTable } from '../dashboard/ClientsTable';
-import { ClientFormModal } from '../dashboard/ClientFormModal';
+import { ClientsTable } from '../../../components/Dashboard/ClientsTable/ClientsTable';
+import { ClientFormModal } from '../../../components/Dashboard/ClientFormModal';
 import { EmptyState } from '@/components/EmptyState';
 
 export default function ClientsPage() {

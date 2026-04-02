@@ -6,7 +6,7 @@ import { Center, Loader } from '@mantine/core';
 import { useQuery } from 'convex/react';
 import { useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../../convex/_generated/api';
-import { LetterForm } from '../LetterForm';
+import { LetterForm } from '@/components/AdminLetters/LetterForm';
 
 export default function NewLetterPage() {
   const router = useRouter();

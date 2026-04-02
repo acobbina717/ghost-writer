@@ -31,7 +31,7 @@ const clerkAppearance = {
     },
 
     cardBox: {
-      boxShadow: '0 16px 48px rgba(0, 0, 0, 0.2)',
+      boxShadow: 'var(--shadow-lg)',
     },
 
     card: {
@@ -164,14 +164,14 @@ export default function RootLayout({
     return (
       <html lang="en" {...mantineHtmlProps}>
         <head>
-          <ColorSchemeScript defaultColorScheme="light" />
+          <ColorSchemeScript defaultColorScheme="auto" />
           <link
             href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
             rel="stylesheet"
           />
         </head>
         <body>
-          <MantineProvider theme={ghostTheme} defaultColorScheme="light">
+          <MantineProvider theme={ghostTheme} defaultColorScheme="auto">
             <Notifications position="bottom-right" />
             {children}
           </MantineProvider>
@@ -183,7 +183,7 @@ export default function RootLayout({
   return (
     <html lang="en" {...mantineHtmlProps}>
       <head>
-        <ColorSchemeScript defaultColorScheme="light" />
+        <ColorSchemeScript defaultColorScheme="auto" />
         {/* Satoshi font from Fontshare */}
         <link
           href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap"
@@ -193,7 +193,7 @@ export default function RootLayout({
       <body>
         <ClerkProvider appearance={clerkAppearance}>
           <ConvexClientProvider>
-            <MantineProvider theme={ghostTheme} defaultColorScheme="light">
+            <MantineProvider theme={ghostTheme} defaultColorScheme="auto">
               <Notifications position="bottom-right" />
               {children}
             </MantineProvider>

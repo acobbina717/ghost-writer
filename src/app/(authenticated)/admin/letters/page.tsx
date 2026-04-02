@@ -7,7 +7,7 @@ import { IconPlus, IconFileText } from '@tabler/icons-react';
 import { useQuery } from 'convex/react';
 import { useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../convex/_generated/api';
-import { LettersTable } from './LettersTable';
+import { LettersTable } from '@/components/AdminLetters/LettersTable';
 import { EmptyState } from '@/components/EmptyState';
 import { LinkButton } from '@/components/LinkButton';
 
@@ -16,6 +16,7 @@ export default function AdminLettersPage() {
   const { isLoaded: isAuthLoaded } = useAuth();
   const user = useQuery(api.users.getCurrentUser);
   const letters = useQuery(api.letters.getLetters);
+  const templateStats = useQuery(api.letters.getTemplateStats);
 
   // Redirect non-admins to dashboard (only after auth is loaded)
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function AdminLettersPage() {
   }, [isAuthLoaded, user, router]);
 
   // Loading state
-  const isLoading = !isAuthLoaded || !user || user.role !== 'admin' || letters === undefined;
+  const isLoading = !isAuthLoaded || !user || user.role !== 'admin' || letters === undefined || templateStats === undefined;
 
   if (isLoading) {
     return (
@@ -66,7 +67,7 @@ export default function AdminLettersPage() {
           }}
         />
       ) : (
-        <LettersTable letters={letters} />
+        <LettersTable letters={letters} templateStats={templateStats} />
       )}
     </Stack>
   );

@@ -24,8 +24,8 @@ import {
 } from '@tabler/icons-react';
 import type { ConvexClient } from '@/lib/convex-types';
 import { formatAddress } from '@/lib/formatAddress';
-import { ClientFormModal } from '../../dashboard/ClientFormModal';
-import { DeleteClientModal } from '../../dashboard/DeleteClientModal';
+import { ClientFormModal } from '../../../../components/Dashboard/ClientFormModal';
+import { DeleteClientModal } from '../../../../components/Dashboard/DeleteClientModal';
 import { PURGE_ENABLED } from '@/lib/constants';
 
 // =============================================================================

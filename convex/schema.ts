@@ -46,7 +46,7 @@ export default defineSchema({
     disputeType: v.string(), // e.g., "Medical", "Collection", "Late Payment"
     craTarget: v.string(), // 'experian' | 'equifax' | 'transunion'
     currentRound: v.number(),
-    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
+    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified"), v.literal("no_change")),
     createdAt: v.number(),
     updatedAt: v.number(),
     // Common to all schema groups
@@ -85,7 +85,8 @@ export default defineSchema({
     userId: v.id("users"),
     letterId: v.id("letters"),
     disputeItemIds: v.array(v.id("disputeItems")),
-    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified")),
+    status: v.union(v.literal("pending"), v.literal("removed"), v.literal("verified"), v.literal("no_change")),
+    downloadedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_client", ["clientId"])

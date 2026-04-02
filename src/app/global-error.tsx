@@ -16,32 +16,44 @@ export default function GlobalError({
 
   return (
     <html>
-      <body style={{ 
-        margin: 0, 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <head>
+        <style>{`
+          body.error-body { background: #F1F3F5; color: #212529; }
+          body.error-body .error-heading { color: #212529; }
+          body.error-body .error-subtext { color: #868E96; }
+          @media (prefers-color-scheme: dark) {
+            body.error-body { background: #111216; color: #F4F5F7; }
+            body.error-body .error-heading { color: #F4F5F7; }
+            body.error-body .error-subtext { color: #8D93A0; }
+          }
+        `}</style>
+      </head>
+      <body className="error-body" style={{
+        margin: 0,
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        background: '#0A0A0A',
         fontFamily: 'system-ui, sans-serif',
       }}>
         <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <h1 style={{ color: '#fff', marginBottom: '1rem' }}>
+          <h1 className="error-heading" style={{ marginBottom: '1rem', fontWeight: 900 }}>
             Ghost hit a snag
           </h1>
-          <p style={{ color: '#888', maxWidth: 400, margin: '0 auto 1.5rem' }}>
+          <p className="error-subtext" style={{ maxWidth: 400, margin: '0 auto 1.5rem', fontWeight: 500 }}>
             Something unexpected happened. The team has been notified.
           </p>
-          <button 
+          <button
             onClick={() => reset()}
             style={{
               background: '#E21C1C',
-              color: '#fff',
+              color: '#FFFFFF',
               border: 'none',
               padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '1rem',
+              fontSize: '13px',
+              fontWeight: 600,
             }}
           >
             Try Again

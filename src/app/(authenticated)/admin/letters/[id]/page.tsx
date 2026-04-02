@@ -7,7 +7,7 @@ import { useQuery } from 'convex/react';
 import { useAuth } from '@clerk/nextjs';
 import { api } from '../../../../../../convex/_generated/api';
 import type { Id } from '../../../../../../convex/_generated/dataModel';
-import { LetterForm } from '../LetterForm';
+import { LetterForm } from '@/components/AdminLetters/LetterForm';
 
 export default function EditLetterPage() {
   const router = useRouter();

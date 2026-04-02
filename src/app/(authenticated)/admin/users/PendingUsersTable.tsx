@@ -8,6 +8,7 @@ import { api } from '../../../../../convex/_generated/api';
 import type { Id } from '../../../../../convex/_generated/dataModel';
 import { getSocialIcon, formatDate } from '@/lib/utils';
 import type { ConvexUser } from '@/lib/convex-types';
+import { FW } from '@/theme/ghost-theme';
 
 interface PendingUsersTableProps {
   users: ConvexUser[];
@@ -54,7 +55,7 @@ export function PendingUsersTable({ users }: PendingUsersTableProps) {
   return (
     <Card withBorder padding="md">
       <Table.ScrollContainer minWidth={600}>
-        <Table verticalSpacing="sm" striped highlightOnHover>
+        <Table verticalSpacing="xs" striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Username</Table.Th> 
@@ -68,7 +69,7 @@ export function PendingUsersTable({ users }: PendingUsersTableProps) {
             {users.map((user) => (
               <Table.Tr key={user._id}>
                 <Table.Td>
-                  <Text fw={500}>{user.username}</Text>
+                  <Text fw={FW.BODY}>{user.username}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">

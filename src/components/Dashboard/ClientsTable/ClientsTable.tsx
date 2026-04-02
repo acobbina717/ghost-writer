@@ -26,7 +26,7 @@ import type { ClientsTableProps, DisputeItemsCache } from './types';
 
 const PAGE_SIZE_OPTIONS = ['10', '25', '50'];
 
-export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
+export function ClientsTable({ clients }: ClientsTableProps) {
   const convex = useConvex();
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [disputeItemsCache, setDisputeItemsCache] = useState<DisputeItemsCache>({});
@@ -36,19 +36,13 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
   const filteredData = useMemo(() => {
-    let data = filter === 'pending'
-      ? clients.filter((c) => c.pendingDisputes > 0)
-      : clients;
+    if (!search.trim()) return clients;
 
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      data = data.filter((c) =>
-        `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
-      );
-    }
-
-    return data;
-  }, [clients, filter, search]);
+    const q = search.toLowerCase().trim();
+    return clients.filter((c) =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q)
+    );
+  }, [clients, search]);
 
   const handleDeleteClick = useCallback((client: ClientWithDisputes) => {
     setClientToDelete(client);
@@ -121,9 +115,10 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
           onChange={(e) => setSearch(e.currentTarget.value)}
           m="md"
           mb={0}
+          styles={{ input: { backgroundColor: 'var(--bg-inset)', borderColor: 'var(--border-default)' } }}
         />
         <ScrollArea type="auto">
-        <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover style={{ minWidth: 600 }}>
+        <Table horizontalSpacing="md" verticalSpacing="xs" highlightOnHover style={{ minWidth: 600 }}>
           <Table.Thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <Table.Tr key={headerGroup.id}>
@@ -140,7 +135,7 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
                     {header.isPlaceholder
                       ? null
                       : (
-                        <Group gap={4} wrap="nowrap">
+                        <Group gap="xs" wrap="nowrap">
                           {flexRender(header.column.columnDef.header, header.getContext())}
                           {header.column.getIsSorted() === 'asc' && <Text size="xs">↑</Text>}
                           {header.column.getIsSorted() === 'desc' && <Text size="xs">↓</Text>}
@@ -156,9 +151,7 @@ export function ClientsTable({ clients, filter = 'all' }: ClientsTableProps) {
               <Table.Tr>
                 <Table.Td colSpan={columns.length}>
                   <Text c="dimmed" ta="center" py="xl">
-                    {filter === 'pending'
-                      ? 'No pending disputes. Ghost is caught up.'
-                      : 'No clients found.'}
+                    No clients found.
                   </Text>
                 </Table.Td>
               </Table.Tr>

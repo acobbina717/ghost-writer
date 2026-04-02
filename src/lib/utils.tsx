@@ -54,3 +54,14 @@ export function formatDate(date: Date, options?: Intl.DateTimeFormatOptions) {
   }).format(d);
 }
 
+/**
+ * Map a success/removal rate (0-100 | null) to a Mantine color token.
+ * Thresholds: ≥70% → green, ≥40% → yellow, <40% → red, null → gray.
+ */
+export function getSuccessRateColor(rate: number | null): string {
+  if (rate === null) return 'gray';
+  if (rate >= 70) return 'green';
+  if (rate >= 40) return 'yellow';
+  return 'red';
+}
+

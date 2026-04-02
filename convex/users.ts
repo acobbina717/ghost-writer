@@ -120,7 +120,7 @@ export const completeOnboarding = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
-    if (!VALID_SOCIAL_PLATFORM_VALUES.includes(args.socialPlatform as any)) {
+    if (!VALID_SOCIAL_PLATFORM_VALUES.includes(args.socialPlatform as string)) {
       throw new Error("Invalid social platform");
     }
     if (!args.socialHandle.trim() || args.socialHandle.length > 100) {

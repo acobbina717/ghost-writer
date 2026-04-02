@@ -23,6 +23,8 @@ import {
 import { IconArrowUp, IconArrowDown, IconArrowsSort, IconChevronRight, IconChevronDown } from '@tabler/icons-react';
 import type { LetterAnalytics } from '@/lib/convex-types';
 import { getCraInfo } from '@/lib/constants';
+import { FW } from '@/theme/ghost-theme';
+import { formatDate as formatDateUtil, getSuccessRateColor } from '@/lib/utils';
 
 // =============================================================================
 // TYPES
@@ -38,18 +40,7 @@ interface LetterAnalyticsTableProps {
 
 function formatDate(date: Date | null): string {
   if (!date) return '—';
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(date));
-}
-
-function getSuccessRateColor(rate: number | null): string {
-  if (rate === null) return 'gray';
-  if (rate >= 70) return 'green';
-  if (rate >= 40) return 'yellow';
-  return 'red';
+  return formatDateUtil(new Date(date));
 }
 
 function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
@@ -98,7 +89,7 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
         accessorKey: 'title',
         header: 'Letter Title',
         cell: ({ getValue }) => (
-          <Text size="sm" fw={500}>
+          <Text size="sm" fw={FW.BODY}>
             {getValue() as string}
           </Text>
         ),
@@ -182,7 +173,7 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
   return (
     <Paper withBorder radius="sm">
       <ScrollArea type="auto">
-      <Table horizontalSpacing="md" verticalSpacing="sm" highlightOnHover style={{ minWidth: 600 }}>
+      <Table horizontalSpacing="md" verticalSpacing="xs" highlightOnHover style={{ minWidth: 600 }}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -232,7 +223,7 @@ export function LetterAnalyticsTable({ letters }: LetterAnalyticsTableProps) {
                 </Table.Tr>
                 {row.getIsExpanded() && (
                   <Table.Tr>
-                    <Table.Td colSpan={columns.length} style={{ background: 'var(--bg-elevated)', padding: '8px 16px 8px 48px' }}>
+                    <Table.Td colSpan={columns.length} style={{ background: 'var(--bg-elevated)', padding: 'var(--mantine-spacing-sm) var(--mantine-spacing-md) var(--mantine-spacing-sm) var(--mantine-spacing-xl)' }}>
                       <Group gap="lg" wrap="wrap">
                         {Object.entries(row.original.perCraStats).map(([cra, stats]) => {
                           const craInfo = getCraInfo(cra);

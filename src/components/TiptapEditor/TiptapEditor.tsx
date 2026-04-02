@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback } from 'react';
-import { useEditor } from '@tiptap/react';
+import { useCallback, useEffect } from 'react';
+import { useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
@@ -11,6 +11,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { RichTextEditor, useRichTextEditorContext } from '@mantine/tiptap';
 import { Box, Group, ScrollArea, Select } from '@mantine/core';
 import { SmartTagsSidebar } from './SmartTagsSidebar';
+import { LAYOUT } from '@/theme/ghost-theme';
 import { DisputeItemsBlock, serializeDisputeBlocks, deserializeDisputeBlocks } from './extensions/DisputeItemsBlock';
 
 const FONT_FAMILIES = [
@@ -146,6 +147,10 @@ interface TiptapEditorProps {
   placeholder?: string;
   /** Selected dispute types — drives context-aware per-item tags in sidebar */
   disputeTypes?: string[];
+  /** When true, the built-in SmartTagsSidebar is hidden so the parent can render it externally. */
+  hideSidebar?: boolean;
+  /** Callback that exposes the Tiptap editor instance to the parent component. */
+  onEditorReady?: (editor: Editor | null) => void;
 }
 
 export function TiptapEditor({
@@ -153,6 +158,8 @@ export function TiptapEditor({
   onChange,
   placeholder = 'Start writing your letter template...',
   disputeTypes = [],
+  hideSidebar = false,
+  onEditorReady,
 }: TiptapEditorProps) {
   const editor = useEditor({
     extensions: [
@@ -189,11 +196,18 @@ export function TiptapEditor({
     immediatelyRender: false,
   });
 
+  // Expose the editor instance to the parent when ready
+  useEffect(() => {
+    if (onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
+
   return (
     <Group align="flex-start" gap="md" wrap="nowrap">
       <Box style={{ flex: 1, minWidth: 0 }}>
         <RichTextEditor editor={editor} withTypographyStyles={false}>
-          <RichTextEditor.Toolbar sticky stickyOffset={60}>
+          <RichTextEditor.Toolbar sticky stickyOffset={LAYOUT.HEADER_LAYER1}>
             <RichTextEditor.ControlsGroup>
               <FontFamilyControl />
               <FontSizeControl />
@@ -236,10 +250,10 @@ export function TiptapEditor({
             </RichTextEditor.ControlsGroup>
           </RichTextEditor.Toolbar>
 
-          <ScrollArea h={500} type="auto">
+          <ScrollArea h={LAYOUT.EDITOR_HEIGHT} type="auto">
             <RichTextEditor.Content
               style={{
-                minHeight: 500,
+                minHeight: LAYOUT.EDITOR_HEIGHT,
                 fontFamily: 'Arial, sans-serif',
                 fontSize: '12pt',
               }}
@@ -248,7 +262,7 @@ export function TiptapEditor({
         </RichTextEditor>
       </Box>
 
-      <SmartTagsSidebar editor={editor} disputeTypes={disputeTypes} />
+      {!hideSidebar && <SmartTagsSidebar editor={editor} disputeTypes={disputeTypes} />}
     </Group>
   );
 }

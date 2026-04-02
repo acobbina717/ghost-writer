@@ -43,7 +43,7 @@ export default function SignUpPage() {
           >
             Join Ghost-Writer
           </Title>
-          <Text c="dimmed" size="sm" style={{ letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          <Text c="dimmed" size="sm" style={{ letterSpacing: 'var(--ls-wider)', textTransform: 'uppercase' }}>
             Request Access
           </Text>
         </Stack>

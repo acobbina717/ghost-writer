@@ -49,8 +49,7 @@ export const actionHover = action[7];
 
 // =============================================================================
 // DARK MODE PALETTE - Simplified & Lifted
-// TODO: defaultColorScheme is set to "light" in layout.tsx. Remove these
-// dark mode tokens if dark mode is not planned, or implement dark mode support.
+// Dark mode is active — defaultColorScheme is set to "auto" in layout.tsx.
 // =============================================================================
 
 export const dark = {
@@ -72,25 +71,25 @@ export const dark = {
 } as const;
 
 // =============================================================================
-// LIGHT MODE PALETTE - Simplified
+// LIGHT MODE PALETTE - Simplified (Soft Neutral)
 // =============================================================================
 
 export const light = {
-  base: '#F7F7F8',
-  surface: '#FFFFFF',
-  elevated: '#F0F1F3',
-  inset: '#E9EBEF',
+  base: '#F1F3F5',    // Soft Neutral Gray
+  surface: '#F8F9FA', // Off-White — subtle elevation per Experience Blueprint
+  elevated: '#F1F3F5',
+  inset: '#E9ECEF',
 
-  textPrimary: '#0D0E11',
-  textSecondary: '#4B4F58',
-  textTertiary: '#6A7080',
-  textMuted: '#6A7080',
+  textPrimary: '#212529',   // Soft Charcoal
+  textSecondary: '#495057', // Muted Gray
+  textTertiary: '#868E96',
+  textMuted: '#ADB5BD',
 
-  borderDefault: '#E5E7EA',
-  borderSubtle: '#EFF1F3',
-  borderStrong: '#D4D7DD',
+  borderDefault: '#DEE2E6',
+  borderSubtle: '#E9ECEF',
+  borderStrong: '#CED4DA',
 
-  shadowLg: '0 16px 48px rgba(0, 0, 0, 0.12)',
+  shadowLg: '0 16px 48px rgba(0, 0, 0, 0.08)',
 } as const;
 
 // =============================================================================
@@ -148,16 +147,16 @@ export const mantineDark = [
 ] as const;
 
 export const neutral = [
-  '#FFFFFF',
-  '#F7F7F8',
-  '#F0F1F3',
-  '#E9EBEF',
-  '#E5E7EA',
-  '#D4D7DD',
-  '#6A7080',
-  '#4B4F58',
-  '#2A2D34',
-  '#111216',
+  '#FFFFFF', // 0: Pure White (Surfaces)
+  '#F8F9FA', // 1: Very Light Gray
+  '#F1F3F5', // 2: App Base (Soft Neutral)
+  '#E9ECEF', // 3: Elevated Surface
+  '#DEE2E6', // 4: Borders Default
+  '#CED4DA', // 5: Borders Strong
+  '#868E96', // 6: Muted Text
+  '#495057', // 7: Secondary Text
+  '#343A40', // 8: Dark Text
+  '#212529', // 9: Primary Text (Soft Charcoal)
 ] as const;
 
 // =============================================================================

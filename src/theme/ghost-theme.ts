@@ -6,6 +6,32 @@ const actionScale = mantineAction as unknown as MantineColorsTuple;
 const darkScale = mantineDark as unknown as MantineColorsTuple;
 const neutralScale = neutral as unknown as MantineColorsTuple;
 
+/** Layout height constants — single source of truth for all pixel-locked heights */
+export const LAYOUT = {
+  HEADER_LAYER1: 60,
+  HEADER_LAYER2: 48,
+  HEADER_TOTAL: 108,
+  MOBILE_NAV_HEIGHT: 56,
+  GUTTER_WIDE: 200,
+  GUTTER_MEDIUM: 48,
+  EDITOR_HEIGHT: 500,
+  PAPER_MAX_WIDTH: 816,
+} as const;
+
+/** Z-index scale — keep components stacking predictably */
+export const Z = {
+  CONFIG_HEADER: 10,
+  MOBILE_NAV: 100,
+} as const;
+
+/** Font weight roles — map semantic roles to numeric weights */
+export const FW = {
+  HERO: 900,
+  HEADING: 700,
+  LABEL: 600,
+  BODY: 500,
+} as const;
+
 export const ghostTheme = createTheme({
   // Typography
   fontFamily: fonts.sans,
@@ -14,8 +40,8 @@ export const ghostTheme = createTheme({
   headings: {
     fontFamily: fonts.sans,
     sizes: {
-      h1: { fontSize: rem(32), lineHeight: '1.2', fontWeight: '900' },
-      h2: { fontSize: rem(24), lineHeight: '1.25', fontWeight: '700' },
+      h1: { fontSize: rem(32), lineHeight: '1.1', fontWeight: '900' },
+      h2: { fontSize: rem(24), lineHeight: '1.2', fontWeight: '700' },
       h3: { fontSize: rem(20), lineHeight: '1.3', fontWeight: '600' },
       h4: { fontSize: rem(16), lineHeight: '1.4', fontWeight: '500' },
     },
@@ -23,20 +49,22 @@ export const ghostTheme = createTheme({
 
   // Font sizes
   fontSizes: {
+    xxs: rem(10),
     xs: rem(11),
-    sm: rem(12),
-    md: rem(14),
-    lg: rem(16),
-    xl: rem(20),
+    sm: rem(13), // Slightly larger base for legibility
+    md: rem(15),
+    lg: rem(18),
+    xl: rem(24),
   },
 
-  // Spacing (8px base)
+  // Spacing (Logical scale)
   spacing: {
+    xxs: rem(2),
     xs: rem(4),
     sm: rem(8),
     md: rem(16),
     lg: rem(24),
-    xl: rem(32),
+    xl: rem(40),
   },
 
   // Sharp radius by default
@@ -49,7 +77,18 @@ export const ghostTheme = createTheme({
   },
   defaultRadius: 'sm',
 
+  // Layout Constants
+  other: {
+    headerHeight: 60,
+    contextRibbonHeight: 48,
+    mobileNavHeight: 56,
+    gutterWidth: 200,
+    collapsedGutterWidth: 48,
+    paperMaxWidth: 816,
+  },
+
   // Colors - now imported from single source of truth
+
   primaryColor: 'action',
   primaryShade: { light: 6, dark: 5 },
   
@@ -74,46 +113,52 @@ export const ghostTheme = createTheme({
     Button: {
       defaultProps: {
         radius: 'sm',
+        size: 'md',
       },
       styles: {
         root: {
           fontWeight: 600,
+          transition: 'transform 100ms ease, box-shadow 100ms ease',
         },
       },
     },
     
     TextInput: {
-      styles: {
-        label: {
-          fontSize: rem(12),
-          fontWeight: 500,
-          marginBottom: rem(4),
-        },
-        input: {
-          borderRadius: rem(4),
-        },
+      defaultProps: {
+        size: 'sm',
       },
-    },
-
-    Textarea: {
       styles: {
         label: {
           fontSize: rem(12),
-          fontWeight: 500,
+          fontWeight: 600,
           marginBottom: rem(4),
+          color: 'var(--text-secondary)',
+          textTransform: 'uppercase',
+          letterSpacing: 'var(--ls-wide)',
         },
         input: {
           borderRadius: rem(4),
+          backgroundColor: 'var(--bg-surface)',
+          border: '1px solid var(--border-default)',
+          '&:focus': {
+            borderColor: 'var(--mantine-primary-color-filled)',
+          },
         },
       },
     },
 
     Select: {
+      defaultProps: {
+        size: 'sm',
+      },
       styles: {
         label: {
           fontSize: rem(12),
-          fontWeight: 500,
+          fontWeight: 600,
           marginBottom: rem(4),
+          color: 'var(--text-secondary)',
+          textTransform: 'uppercase',
+          letterSpacing: 'var(--ls-wide)',
         },
       },
     },
@@ -122,28 +167,47 @@ export const ghostTheme = createTheme({
       defaultProps: {
         radius: 'sm',
         withBorder: true,
+        padding: 'md',
+      },
+      styles: {
+        root: {
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-default)',
+        },
       },
     },
 
-    Modal: {
+    Paper: {
       defaultProps: {
-        radius: 'md',
-        centered: true,
+        radius: 'sm',
       },
       styles: {
-        header: {
-          fontWeight: 700,
+        root: {
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-default)',
         },
       },
     },
 
     Table: {
       styles: {
+        table: {
+          backgroundColor: 'var(--bg-surface)',
+        },
         th: {
           fontSize: rem(11),
-          fontWeight: 500,
-          letterSpacing: '0.1em',
+          fontWeight: 600,
+          letterSpacing: 'var(--ls-wider)',
           textTransform: 'uppercase' as const,
+          color: 'var(--text-tertiary)',
+          borderBottom: '1px solid var(--border-default)',
+          paddingTop: rem(12),
+          paddingBottom: rem(12),
+        },
+        td: {
+          paddingTop: rem(12),
+          paddingBottom: rem(12),
+          borderBottom: '1px solid var(--border-subtle)',
         },
       },
     },

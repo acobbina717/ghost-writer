@@ -2,8 +2,8 @@
 
 import { useQuery } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
-import { TeamDashboard } from './TeamDashboard';
-import { AdminDashboard } from './AdminDashboard';
+import { TeamDashboard } from '@/components/Dashboard/TeamDashboard';
+import { AdminDashboard } from '@/components/Dashboard/AdminDashboard';
 import {
   Card,
   Group,
@@ -71,6 +71,7 @@ export default function DashboardPage() {
   const user = useQuery(api.users.getCurrentUser);
   const clientsWithDisputes = useQuery(api.clients.getClientsWithDisputes);
   const clientStats = useQuery(api.clients.getClientStats);
+  const draftClientIds = useQuery(api.letters.getDraftClientIds);
   const letterAnalytics = useQuery(
     api.letters.getLetterAnalytics,
     user?.role === 'admin' ? {} : 'skip'
@@ -91,11 +92,16 @@ export default function DashboardPage() {
     api.letters.getRoundPerformance,
     user?.role === 'admin' ? {} : 'skip'
   );
+  const teamVelocity = useQuery(
+    api.letters.getTeamVelocity,
+    user?.role === 'admin' ? {} : 'skip'
+  );
 
   const isLoading =
     !user ||
     clientsWithDisputes === undefined ||
     clientStats === undefined ||
+    draftClientIds === undefined ||
     (user?.role === 'admin' &&
       (letterAnalytics === undefined ||
         letterStats === undefined ||
@@ -118,6 +124,7 @@ export default function DashboardPage() {
         }}
         disputeTypePerformance={disputeTypePerf ?? []}
         roundPerformance={roundPerf ?? []}
+        teamVelocity={teamVelocity ?? { daily: [], totals: [] }}
       />
     );
   }
@@ -127,6 +134,7 @@ export default function DashboardPage() {
       username={user.username}
       clients={clientsWithDisputes}
       stats={clientStats}
+      draftClientIds={draftClientIds}
     />
   );
 }

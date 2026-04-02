@@ -312,6 +312,83 @@ export const getRoundPerformance = query({
   },
 });
 
+/**
+ * Get team velocity — letters generated per agent per day (admin only).
+ *
+ * Returns daily breakdowns and per-user totals for charting.
+ * Uses the by_created_at index on generationLogs for efficient date-range filtering.
+ */
+export const getTeamVelocity = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, "admin");
+
+    const days = args.days ?? 30;
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+
+    // Fetch generation logs within the time window using the by_created_at index
+    const logs = await ctx.db
+      .query("generationLogs")
+      .withIndex("by_created_at", (q) => q.gte("createdAt", cutoff))
+      .collect();
+
+    // Collect unique user IDs and batch-fetch user records
+    const uniqueUserIds = [...new Set(logs.map((log) => log.userId))];
+    const users = await Promise.all(
+      uniqueUserIds.map((id) => ctx.db.get(id))
+    );
+    const userMap = new Map(
+      users
+        .filter(Boolean)
+        .map((u) => [u!._id, u!.username])
+    );
+
+    // Group by userId + calendar day (YYYY-MM-DD)
+    const dailyMap = new Map<string, { userId: string; username: string; count: number }>();
+    const totalsMap = new Map<string, { userId: string; username: string; totalGenerated: number }>();
+
+    for (const log of logs) {
+      const date = new Date(log.createdAt).toISOString().slice(0, 10);
+      const userId = log.userId as string;
+      const username = userMap.get(log.userId) ?? "Unknown";
+
+      // Daily aggregation
+      const dailyKey = `${userId}|${date}`;
+      const existing = dailyMap.get(dailyKey);
+      if (existing) {
+        existing.count++;
+      } else {
+        dailyMap.set(dailyKey, { userId, username, count: 1 });
+      }
+
+      // Totals aggregation
+      const total = totalsMap.get(userId);
+      if (total) {
+        total.totalGenerated++;
+      } else {
+        totalsMap.set(userId, { userId, username, totalGenerated: 1 });
+      }
+    }
+
+    // Build daily array sorted by date ascending, then by username
+    const daily = [...dailyMap.entries()]
+      .map(([key, val]) => ({
+        date: key.split("|")[1],
+        ...val,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.username.localeCompare(b.username));
+
+    // Build totals array sorted by totalGenerated descending
+    const totals = [...totalsMap.values()]
+      .sort((a, b) => b.totalGenerated - a.totalGenerated);
+
+    return { daily, totals };
+  },
+});
+
 // =============================================================================
 // MUTATIONS
 // =============================================================================
@@ -471,7 +548,8 @@ export const deleteLetter = mutation({
 // =============================================================================
 
 /**
- * Log a letter generation (used when generating PDFs)
+ * Log a letter generation. Creates without downloadedAt (draft).
+ * Call markGenerationDownloaded after the PDF is actually downloaded.
  */
 export const logGeneration = mutation({
   args: {
@@ -504,5 +582,50 @@ export const logGeneration = mutation({
     });
 
     return await ctx.db.get(logId);
+  },
+});
+
+/**
+ * Mark a generation log as downloaded after successful PDF download.
+ * Idempotent — only stamps downloadedAt if not already set.
+ */
+export const markGenerationDownloaded = mutation({
+  args: { logId: v.id("generationLogs") },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, "team");
+    const log = await ctx.db.get(args.logId);
+    if (!log) throw new Error("Generation log not found");
+    if (log.downloadedAt) return log; // Already stamped — idempotent
+    await ctx.db.patch(args.logId, { downloadedAt: Date.now() });
+    return await ctx.db.get(args.logId);
+  },
+});
+
+/**
+ * Get draft generations (downloadedAt is undefined) for the current user's clients.
+ * Returns client IDs that have undownloaded generation logs.
+ */
+export const getDraftClientIds = query({
+  handler: async (ctx) => {
+    const currentUser = await requireAuth(ctx, "team");
+
+    let logs;
+    if (currentUser.role === "admin") {
+      logs = await ctx.db.query("generationLogs").collect();
+    } else {
+      logs = await ctx.db
+        .query("generationLogs")
+        .withIndex("by_user", (q) => q.eq("userId", currentUser._id))
+        .collect();
+    }
+
+    const draftClientIds = new Set<string>();
+    for (const log of logs) {
+      if (!log.downloadedAt) {
+        draftClientIds.add(log.clientId);
+      }
+    }
+
+    return [...draftClientIds];
   },
 });

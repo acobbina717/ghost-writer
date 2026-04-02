@@ -4,6 +4,7 @@ import { ActionIcon, useComputedColorScheme, useMantineColorScheme } from '@mant
 import { IconSun, IconMoon } from '@tabler/icons-react';
 import cx from 'clsx';
 import classes from './ColorSchemeToggle.module.css';
+import { Z } from '@/theme/ghost-theme';
 
 export interface ColorSchemeToggleProps {
   /** 
@@ -33,7 +34,7 @@ export function ColorSchemeToggle({ position = 'absolute' }: ColorSchemeTogglePr
         position: 'absolute' as const,
         top: 20,
         right: 20,
-        zIndex: 100,
+        zIndex: Z.MOBILE_NAV,
       }
     : {};
 

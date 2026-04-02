@@ -48,11 +48,11 @@ export const DisputeItemsBlock = Node.create({
       mergeAttributes(HTMLAttributes, {
         'data-dispute-block': 'true',
         style: [
-          'border-left: 2px solid #7c3aed',
-          'background: rgba(124, 58, 237, 0.05)',
-          'padding: 12px 16px',
-          'margin: 8px 0',
-          'border-radius: 4px',
+          'border-left: 2px solid var(--mantine-color-violet-6)',
+          'background: var(--mantine-color-violet-light)',
+          'padding: var(--mantine-spacing-md)',
+          'margin: var(--mantine-spacing-sm) 0',
+          'border-radius: var(--mantine-radius-sm)',
           'position: relative',
         ].join('; '),
       }),

@@ -70,4 +70,5 @@ export const DISPUTE_STATUS_COLORS: Record<string, string> = {
   pending: 'yellow',
   removed: 'green',
   verified: 'red',
+  no_change: 'gray',
 };
