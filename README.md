@@ -167,7 +167,6 @@ Ghost-Writer is currently in active development following a phased rollout strat
 | **Phase 2: Operational Core** | ⏳ In Progress | Team dashboard, client management, PDF pipeline, 91-day purge |
 | **Phase 3: Strategic Intelligence** | 📅 Planned | CRA filtering, outcome tracking, advanced analytics, visual form builder |
 
-See [DEVELOPMENT_PHASING.md](Architect/DEVELOPMENT_PHASING.md) for detailed milestones.
 
 ---
 
@@ -180,7 +179,6 @@ See [DEVELOPMENT_PHASING.md](Architect/DEVELOPMENT_PHASING.md) for detailed mile
 - **Audit logging** for compliance verification
 - **Planned**: 91-day auto-purge with cascading deletion *(currently deferred)*
 
-See [PROJECT_FOUNDATION.md](PROJECT_FOUNDATION.md) for complete security architecture.
 
 ---
 
@@ -196,4 +194,4 @@ For questions or access requests, contact the project administrator via the appr
 
 ---
 
-*Last Updated: January 2025 (v3.0 - Convex Stack)*
+*Last Updated: April 2026 (v3.1 - Elite Workbench)*
